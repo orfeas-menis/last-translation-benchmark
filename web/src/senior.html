@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LTB — Senior Reviewer</title>
+</head>
+<body>
+  <header>
+    <h1>🌐 Last Translation Benchmark</h1>
+    <div>
+      <span id="sen-info" class="info"></span>
+      &nbsp;<button id="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Review Suggestions</h2>
+      <div class="tabs">
+        <button class="tab active" data-filter="pending">Pending</button>
+        <button class="tab" data-filter="scored">Scored</button>
+        <button class="tab" data-filter="all">All</button>
+        <button class="tab refresh-tab" id="refresh-btn">↻ Refresh</button>
+      </div>
+      <div id="sen-list"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</body>
+</html>

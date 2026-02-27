@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LTB — Annotator</title>
+</head>
+<body>
+  <header>
+    <h1>🌐 Last Translation Benchmark</h1>
+    <div>
+      <span id="ann-info" class="info"></span>
+      &nbsp;<button id="logout-btn">Logout</button>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- quota bar -->
+    <div class="card quota-card">
+      <span class="quota-label">Daily inference quota:</span>
+      <div class="bar"><div class="fill" id="quota-fill" style="width:100%"></div></div>
+      <span id="quota-text"></span>
+    </div>
+
+    <!-- suggestion form -->
+    <div class="card">
+      <h2>Submit New Suggestion</h2>
+
+      <div class="row2">
+        <div>
+          <label for="src-lang">Source Language</label>
+          <select id="src-lang">
+            <option value="en">English</option><option value="fr">French</option>
+            <option value="de">German</option><option value="es">Spanish</option>
+            <option value="zh">Chinese</option><option value="ja">Japanese</option>
+            <option value="ru">Russian</option><option value="ar">Arabic</option>
+            <option value="pt">Portuguese</option><option value="it">Italian</option>
+          </select>
+        </div>
+        <div>
+          <label for="tgt-lang">Target Language</label>
+          <select id="tgt-lang">
+            <option value="de">German</option><option value="en">English</option>
+            <option value="fr">French</option><option value="es">Spanish</option>
+            <option value="zh">Chinese</option><option value="ja">Japanese</option>
+            <option value="ru">Russian</option><option value="ar">Arabic</option>
+            <option value="pt">Portuguese</option><option value="it">Italian</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="src-text">Source Text <span class="hint">(the difficult-to-translate text)</span></label>
+      <textarea id="src-text" placeholder="Enter the source text…"></textarea>
+
+      <div class="inline-row">
+        <button class="btn btn-secondary" id="tr-btn">⟳ Auto-translate</button>
+        <span id="tr-status" style="font-size:0.85em;color:#64748b"></span>
+      </div>
+
+      <label for="tgt-text">Translation <span class="hint">(auto-filled, editable)</span></label>
+      <textarea id="tgt-text" placeholder="Translation will appear here…"></textarea>
+
+      <label>Verification Method</label>
+      <div class="radio-row">
+        <label><input type="radio" name="vtype" value="regex" checked> Regex pattern</label>
+        <label><input type="radio" name="vtype" value="llm"> LLM prompt</label>
+      </div>
+
+      <label id="vc-label" for="vc-content">Regex pattern <span class="hint">(matched against translation)</span></label>
+      <textarea id="vc-content" placeholder="e.g. \bword\b" style="min-height:56px"></textarea>
+
+      <div class="inline-row">
+        <button class="btn btn-secondary" id="verify-btn">✓ Test Verification</button>
+        <span id="verify-result"></span>
+      </div>
+
+      <button class="btn btn-success" id="submit-btn">Submit Suggestion</button>
+      <span id="submit-status" style="margin-left:10px;font-size:0.85em"></span>
+    </div>
+
+    <!-- my submissions -->
+    <div class="card">
+      <h2>My Submissions</h2>
+      <div id="my-list"><div class="empty">No submissions yet</div></div>
+    </div>
+
+  </div>
+</body>
+</html>

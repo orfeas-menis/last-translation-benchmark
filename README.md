@@ -33,5 +33,9 @@ Then open <http://localhost:8000>.
 
 ## Stack
 
-- **Backend**: FastAPI + SQLite
-- **Frontend**: jQuery (single `static/index.html`)
+- **Backend**: FastAPI + SQLite (`main.py`)
+- **Frontend**: TypeScript + jQuery, compiled by webpack into `static/`
+  - `web/src/index.ts` — login page (auto-redirects by role)
+  - `web/src/annotator.ts` — annotator view
+  - `web/src/senior.ts` — senior reviewer view
+  - `web/src/api.ts` — typed API connector (shared)
