@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+data/*.sqlite
+data/*.db
+data/*.json
+.env
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+node_modules/
+package-lock.json
+web/node_modules/
+web/package-lock.json
+static/
