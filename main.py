@@ -21,7 +21,7 @@ from pydantic import BaseModel
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-DAILY_QUOTA = int(os.getenv("DAILY_QUOTA", "10"))
+DAILY_QUOTA = 10
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 _HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(_HERE, "data", "db.json")
@@ -46,19 +46,21 @@ def _load_data() -> None:
     # Seed default users on first run
     if not _db["users"]:
         default_users = [
-            ("senior1",    "senior123", "senior"),
-            ("annotator1", "ann123",    "annotator"),
-            ("annotator2", "ann456",    "annotator"),
+            ("senior1", "senior123", "senior"),
+            ("annotator1", "ann123", "annotator"),
+            ("annotator2", "ann456", "annotator"),
         ]
         for uid, (username, password, role) in enumerate(default_users, start=1):
-            _db["users"].append({
-                "id":            uid,
-                "username":      username,
-                "password_hash": hashlib.sha256(password.encode()).hexdigest(),
-                "role":          role,
-                "quota_used":    0,
-                "quota_date":    "",
-            })
+            _db["users"].append(
+                {
+                    "id": uid,
+                    "username": username,
+                    "password_hash": hashlib.sha256(password.encode()).hexdigest(),
+                    "role": role,
+                    "quota_used": 0,
+                    "quota_date": "",
+                }
+            )
         _save_data()
 
 
@@ -89,6 +91,7 @@ app.add_middleware(
 # Auth dependency
 # ---------------------------------------------------------------------------
 
+
 def _auth(authorization: Optional[str] = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
@@ -107,6 +110,7 @@ def _auth(authorization: Optional[str] = Header(None)) -> dict:
 # Pydantic models
 # ---------------------------------------------------------------------------
 
+
 class LoginReq(BaseModel):
     username: str
     password: str
@@ -122,7 +126,7 @@ class VerifyReq(BaseModel):
     translation: str
     verification_type: str
     verification_content: str
-    verification_polarity: str = 'positive'
+    verification_polarity: str = "positive"
 
 
 class SuggestionReq(BaseModel):
@@ -132,7 +136,7 @@ class SuggestionReq(BaseModel):
     target_lang: str = "de"
     verification_type: str
     verification_content: str
-    verification_polarity: str = 'positive'
+    verification_polarity: str = "positive"
 
 
 class ScoreReq(BaseModel):
@@ -143,12 +147,17 @@ class ScoreReq(BaseModel):
 # Routes — auth
 # ---------------------------------------------------------------------------
 
+
 @app.post("/api/login")
 async def login(req: LoginReq):
     phash = hashlib.sha256(req.password.encode()).hexdigest()
     with _lock:
         user = next(
-            (u for u in _db["users"] if u["username"] == req.username and u["password_hash"] == phash),
+            (
+                u
+                for u in _db["users"]
+                if u["username"] == req.username and u["password_hash"] == phash
+            ),
             None,
         )
         if not user:
@@ -174,7 +183,8 @@ async def me(user=Depends(_auth)):
     quota_used = user["quota_used"] if user["quota_date"] == today else 0
     with _lock:
         total_points = sum(
-            s["points"] for s in _db["suggestions"]
+            s["points"]
+            for s in _db["suggestions"]
             if s["user_id"] == user["id"] and s["points"] >= 0
         )
     return {
@@ -191,6 +201,7 @@ async def me(user=Depends(_auth)):
 # Routes — translation + verification
 # ---------------------------------------------------------------------------
 
+
 async def _call_mymemory(
     client: httpx.AsyncClient, text: str, src: str, tgt: str
 ) -> dict:
@@ -202,8 +213,16 @@ async def _call_mymemory(
         )
         data = resp.json()
         if data.get("responseStatus") == 200:
-            return {"api": "MyMemory", "translation": data["responseData"]["translatedText"], "error": None}
-        return {"api": "MyMemory", "translation": None, "error": "API returned an error"}
+            return {
+                "api": "MyMemory",
+                "translation": data["responseData"]["translatedText"],
+                "error": None,
+            }
+        return {
+            "api": "MyMemory",
+            "translation": None,
+            "error": "API returned an error",
+        }
     except Exception as exc:
         return {"api": "MyMemory", "translation": None, "error": str(exc)}
 
@@ -219,8 +238,16 @@ async def _call_libretranslate(
         )
         data = resp.json()
         if "translatedText" in data:
-            return {"api": "LibreTranslate", "translation": data["translatedText"], "error": None}
-        return {"api": "LibreTranslate", "translation": None, "error": data.get("error", "API error")}
+            return {
+                "api": "LibreTranslate",
+                "translation": data["translatedText"],
+                "error": None,
+            }
+        return {
+            "api": "LibreTranslate",
+            "translation": None,
+            "error": data.get("error", "API error"),
+        }
     except Exception as exc:
         return {"api": "LibreTranslate", "translation": None, "error": str(exc)}
 
@@ -228,7 +255,9 @@ async def _call_libretranslate(
 @app.post("/api/translate")
 async def translate(req: TranslateReq, user=Depends(_auth)):
     if user["role"] != "annotator":
-        raise HTTPException(status_code=403, detail="Only annotators can use translation quota")
+        raise HTTPException(
+            status_code=403, detail="Only annotators can use translation quota"
+        )
 
     today = date.today().isoformat()
     with _lock:
@@ -253,9 +282,13 @@ async def translate(req: TranslateReq, user=Depends(_auth)):
 async def verify(req: VerifyReq, user=Depends(_auth)):
     if req.verification_type == "regex":
         try:
-            matched = bool(re.search(req.verification_content, req.translation, re.IGNORECASE))
+            matched = bool(
+                re.search(req.verification_content, req.translation, re.IGNORECASE)
+            )
         except re.error as exc:
-            raise HTTPException(status_code=400, detail=f"Invalid regex: {exc}") from exc
+            raise HTTPException(
+                status_code=400, detail=f"Invalid regex: {exc}"
+            ) from exc
         if req.verification_polarity == "negative":
             verified = not matched
             detail = "not matched (passes)" if verified else "matched (fails)"
@@ -266,7 +299,10 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
 
     if req.verification_type == "llm":
         if not OPENAI_API_KEY:
-            return {"verified": True, "detail": "LLM verification skipped (no API key configured)"}
+            return {
+                "verified": True,
+                "detail": "LLM verification skipped (no API key configured)",
+            }
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.post(
@@ -293,36 +329,45 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
                 )
             answer = resp.json()["choices"][0]["message"]["content"].strip().upper()
         except Exception as exc:
-            raise HTTPException(status_code=502, detail=f"LLM API error: {exc}") from exc
+            raise HTTPException(
+                status_code=502, detail=f"LLM API error: {exc}"
+            ) from exc
         return {"verified": "YES" in answer, "detail": f"LLM: {answer}"}
 
-    raise HTTPException(status_code=400, detail="verification_type must be 'regex' or 'llm'")
+    raise HTTPException(
+        status_code=400, detail="verification_type must be 'regex' or 'llm'"
+    )
 
 
 # ---------------------------------------------------------------------------
 # Routes — suggestions
 # ---------------------------------------------------------------------------
 
+
 @app.post("/api/suggestions")
 async def create_suggestion(req: SuggestionReq, user=Depends(_auth)):
     if user["role"] != "annotator":
-        raise HTTPException(status_code=403, detail="Only annotators can submit suggestions")
+        raise HTTPException(
+            status_code=403, detail="Only annotators can submit suggestions"
+        )
     with _lock:
         sid = _next_id(_db["suggestions"])
-        _db["suggestions"].append({
-            "id":                   sid,
-            "user_id":              user["id"],
-            "username":             user["username"],
-            "source_text":          req.source_text,
-            "translation":          req.translation,
-            "source_lang":          req.source_lang,
-            "target_lang":          req.target_lang,
-            "verification_type":    req.verification_type,
-            "verification_content": req.verification_content,
-            "verification_polarity": req.verification_polarity,
-            "points":               -1,
-            "created_at":           datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        })
+        _db["suggestions"].append(
+            {
+                "id": sid,
+                "user_id": user["id"],
+                "username": user["username"],
+                "source_text": req.source_text,
+                "translation": req.translation,
+                "source_lang": req.source_lang,
+                "target_lang": req.target_lang,
+                "verification_type": req.verification_type,
+                "verification_content": req.verification_content,
+                "verification_polarity": req.verification_polarity,
+                "points": -1,
+                "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            }
+        )
         _save_data()
     return {"ok": True}
 
@@ -347,7 +392,9 @@ async def get_suggestions(user=Depends(_auth)):
 @app.post("/api/suggestions/{sid}/score")
 async def score_suggestion(sid: int, req: ScoreReq, user=Depends(_auth)):
     if user["role"] != "senior":
-        raise HTTPException(status_code=403, detail="Only senior users can score suggestions")
+        raise HTTPException(
+            status_code=403, detail="Only senior users can score suggestions"
+        )
     if req.points not in (0, 1, 2, 3):
         raise HTTPException(status_code=400, detail="Points must be 0, 1, 2, or 3")
     with _lock:

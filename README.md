@@ -1,19 +1,22 @@
-# last-translation-benchmark
+# Last Translation Benchmark (WIP 🚧)
 
-A Humanity's Last Exam–style interface for collecting difficult-to-translate texts.
+Effort to collecting verifiable difficult-to-translate texts.
+Heavily work in progress, do not use.
 
 ## Features
 
-- **Annotator** — suggest source texts, auto-translate them via [MyMemory](https://mymemory.translated.net/), define a verification method (regex or LLM prompt), and submit suggestions. Each annotator has a configurable daily inference quota.
-- **Senior reviewer** — browse pending suggestions and award 0–3 points per suggestion.
+- **Annotator** suggests source texts, auto-translate them via [MyMemory](https://mymemory.translated.net/), define a verification method (regex or LLM prompt), and submit suggestions. Each annotator has a daily inference quota.
+- **Senior reviewer** browses pending suggestions and awards points (0 to 3) per suggestion.
 
 ## Quick start
 
 ```bash
-pip install -r requirements.txt
+pip install .
+# TODO replace with script "last-translation-benchmark"
 uvicorn main:app --reload
 ```
 
+<!-- TODO: print this link instead -->
 Then open <http://localhost:8000>.
 
 ### Default accounts
@@ -26,16 +29,4 @@ Then open <http://localhost:8000>.
 
 ### Environment variables
 
-| Variable        | Default | Description                          |
-|----------------|---------|--------------------------------------|
-| `DAILY_QUOTA`  | `10`    | Max translation API calls per user per day |
-| `OPENAI_API_KEY` | _(empty)_ | Optional — enables real LLM verification via GPT-4o-mini |
-
-## Stack
-
-- **Backend**: FastAPI + SQLite (`main.py`)
-- **Frontend**: TypeScript + jQuery, compiled by webpack into `static/`
-  - `web/src/index.ts` — login page (auto-redirects by role)
-  - `web/src/annotator.ts` — annotator view
-  - `web/src/senior.ts` — senior reviewer view
-  - `web/src/api.ts` — typed API connector (shared)
+- `OPENAI_API_KEY`: enables real LLM verification via GPT-4o-mini
