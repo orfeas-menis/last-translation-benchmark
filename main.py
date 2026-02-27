@@ -4,11 +4,12 @@ Last Translation Benchmark — FastAPI backend
 
 import asyncio
 import hashlib
+import json
 import os
 import re
 import secrets
-import sqlite3
-from datetime import date
+import threading
+from datetime import date, datetime, timezone
 from typing import Optional
 
 import httpx
@@ -23,79 +24,54 @@ from pydantic import BaseModel
 DAILY_QUOTA = int(os.getenv("DAILY_QUOTA", "10"))
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 _HERE = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(_HERE, "data", "db.sqlite")
+DATA_PATH = os.path.join(_HERE, "data", "db.json")
 
 # ---------------------------------------------------------------------------
-# Database
+# JSON data store
 # ---------------------------------------------------------------------------
 
-def _get_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+_lock = threading.Lock()
+_db: dict = {}
 
 
-def _init_db() -> None:
-    os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-    conn = _get_db()
-    conn.executescript(
-        """
-        CREATE TABLE IF NOT EXISTS users (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            username      TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            role          TEXT NOT NULL DEFAULT 'annotator',
-            quota_used    INTEGER DEFAULT 0,
-            quota_date    TEXT    DEFAULT ''
-        );
-        CREATE TABLE IF NOT EXISTS suggestions (
-            id                   INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id              INTEGER NOT NULL,
-            username             TEXT NOT NULL,
-            source_text          TEXT NOT NULL,
-            translation          TEXT NOT NULL,
-            source_lang          TEXT DEFAULT 'en',
-            target_lang          TEXT DEFAULT 'de',
-            verification_type    TEXT NOT NULL,
-            verification_content TEXT NOT NULL,
-            points               INTEGER DEFAULT -1,
-            created_at           TEXT DEFAULT (datetime('now'))
-        );
-        CREATE TABLE IF NOT EXISTS tokens (
-            token   TEXT PRIMARY KEY,
-            user_id INTEGER NOT NULL
-        );
-        """
-    )
-    conn.commit()
+def _load_data() -> None:
+    global _db
+    os.makedirs(os.path.dirname(DATA_PATH), exist_ok=True)
+    if os.path.exists(DATA_PATH):
+        with open(DATA_PATH, "r", encoding="utf-8") as f:
+            _db = json.load(f)
+    else:
+        _db = {"users": [], "suggestions": [], "tokens": {}}
 
-    # Migration: add verification_polarity if missing
-    try:
-        conn.execute(
-            "ALTER TABLE suggestions ADD COLUMN verification_polarity TEXT DEFAULT 'positive'"
-        )
-        conn.commit()
-    except sqlite3.OperationalError:
-        pass  # column already exists
-
-    # Seed default users only on first run
-    if conn.execute("SELECT COUNT(*) FROM users").fetchone()[0] == 0:
+    # Seed default users on first run
+    if not _db["users"]:
         default_users = [
-            ("senior1",     "senior123", "senior"),
-            ("annotator1",  "ann123",    "annotator"),
-            ("annotator2",  "ann456",    "annotator"),
+            ("senior1",    "senior123", "senior"),
+            ("annotator1", "ann123",    "annotator"),
+            ("annotator2", "ann456",    "annotator"),
         ]
-        for username, password, role in default_users:
-            phash = hashlib.sha256(password.encode()).hexdigest()
-            conn.execute(
-                "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)",
-                (username, phash, role),
-            )
-        conn.commit()
-    conn.close()
+        for uid, (username, password, role) in enumerate(default_users, start=1):
+            _db["users"].append({
+                "id":            uid,
+                "username":      username,
+                "password_hash": hashlib.sha256(password.encode()).hexdigest(),
+                "role":          role,
+                "quota_used":    0,
+                "quota_date":    "",
+            })
+        _save_data()
 
 
-_init_db()
+def _save_data() -> None:
+    with open(DATA_PATH, "w", encoding="utf-8") as f:
+        json.dump(_db, f, indent=2, ensure_ascii=False)
+
+
+def _next_id(collection: list) -> int:
+    return max((item["id"] for item in collection), default=0) + 1
+
+
+_load_data()
 
 # ---------------------------------------------------------------------------
 # App + middleware
@@ -117,15 +93,14 @@ def _auth(authorization: Optional[str] = Header(None)) -> dict:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Not authenticated")
     token = authorization[7:]
-    conn = _get_db()
-    row = conn.execute(
-        "SELECT u.* FROM tokens t JOIN users u ON t.user_id = u.id WHERE t.token = ?",
-        (token,),
-    ).fetchone()
-    conn.close()
-    if not row:
+    with _lock:
+        user_id = _db["tokens"].get(token)
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
+        user = next((u for u in _db["users"] if u["id"] == user_id), None)
+    if user is None:
         raise HTTPException(status_code=401, detail="Invalid token")
-    return dict(row)
+    return user
 
 
 # ---------------------------------------------------------------------------
@@ -170,28 +145,26 @@ class ScoreReq(BaseModel):
 
 @app.post("/api/login")
 async def login(req: LoginReq):
-    conn = _get_db()
     phash = hashlib.sha256(req.password.encode()).hexdigest()
-    user = conn.execute(
-        "SELECT * FROM users WHERE username = ? AND password_hash = ?",
-        (req.username, phash),
-    ).fetchone()
-    if not user:
-        conn.close()
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    token = secrets.token_hex(32)
-    conn.execute("INSERT INTO tokens (token, user_id) VALUES (?, ?)", (token, user["id"]))
-    conn.commit()
-    conn.close()
+    with _lock:
+        user = next(
+            (u for u in _db["users"] if u["username"] == req.username and u["password_hash"] == phash),
+            None,
+        )
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        token = secrets.token_hex(32)
+        _db["tokens"][token] = user["id"]
+        _save_data()
     return {"token": token, "role": user["role"], "username": user["username"]}
 
 
 @app.post("/api/logout")
 async def logout(user=Depends(_auth), authorization: Optional[str] = Header(None)):
-    conn = _get_db()
-    conn.execute("DELETE FROM tokens WHERE token = ?", (authorization[7:],))
-    conn.commit()
-    conn.close()
+    token = authorization[7:]
+    with _lock:
+        _db["tokens"].pop(token, None)
+        _save_data()
     return {"ok": True}
 
 
@@ -199,19 +172,18 @@ async def logout(user=Depends(_auth), authorization: Optional[str] = Header(None
 async def me(user=Depends(_auth)):
     today = date.today().isoformat()
     quota_used = user["quota_used"] if user["quota_date"] == today else 0
-    conn = _get_db()
-    total_points = conn.execute(
-        "SELECT COALESCE(SUM(points), 0) FROM suggestions WHERE user_id = ? AND points >= 0",
-        (user["id"],),
-    ).fetchone()[0]
-    conn.close()
+    with _lock:
+        total_points = sum(
+            s["points"] for s in _db["suggestions"]
+            if s["user_id"] == user["id"] and s["points"] >= 0
+        )
     return {
         "username": user["username"],
         "role": user["role"],
         "quota_used": quota_used,
         "quota_remaining": max(0, DAILY_QUOTA - quota_used),
         "daily_quota": DAILY_QUOTA,
-        "total_points": int(total_points),
+        "total_points": total_points,
     }
 
 
@@ -259,15 +231,10 @@ async def translate(req: TranslateReq, user=Depends(_auth)):
         raise HTTPException(status_code=403, detail="Only annotators can use translation quota")
 
     today = date.today().isoformat()
-    conn = _get_db()
-    row = conn.execute(
-        "SELECT quota_used, quota_date FROM users WHERE id = ?", (user["id"],)
-    ).fetchone()
-    quota_used = row["quota_used"] if row["quota_date"] == today else 0
-
-    if quota_used >= DAILY_QUOTA:
-        conn.close()
-        raise HTTPException(status_code=429, detail="Daily quota exceeded")
+    with _lock:
+        quota_used = user["quota_used"] if user["quota_date"] == today else 0
+        if quota_used >= DAILY_QUOTA:
+            raise HTTPException(status_code=429, detail="Daily quota exceeded")
 
     async with httpx.AsyncClient() as client:
         results = await asyncio.gather(
@@ -275,12 +242,10 @@ async def translate(req: TranslateReq, user=Depends(_auth)):
             _call_libretranslate(client, req.text, req.source_lang, req.target_lang),
         )
 
-    conn.execute(
-        "UPDATE users SET quota_used = ?, quota_date = ? WHERE id = ?",
-        (quota_used + 1, today, user["id"]),
-    )
-    conn.commit()
-    conn.close()
+    with _lock:
+        user["quota_used"] = quota_used + 1
+        user["quota_date"] = today
+        _save_data()
     return {"results": list(results), "quota_remaining": DAILY_QUOTA - quota_used - 1}
 
 
@@ -342,39 +307,41 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
 async def create_suggestion(req: SuggestionReq, user=Depends(_auth)):
     if user["role"] != "annotator":
         raise HTTPException(status_code=403, detail="Only annotators can submit suggestions")
-    conn = _get_db()
-    conn.execute(
-        """INSERT INTO suggestions
-           (user_id, username, source_text, translation, source_lang, target_lang,
-            verification_type, verification_content, verification_polarity)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (
-            user["id"], user["username"],
-            req.source_text, req.translation,
-            req.source_lang, req.target_lang,
-            req.verification_type, req.verification_content,
-            req.verification_polarity,
-        ),
-    )
-    conn.commit()
-    conn.close()
+    with _lock:
+        sid = _next_id(_db["suggestions"])
+        _db["suggestions"].append({
+            "id":                   sid,
+            "user_id":              user["id"],
+            "username":             user["username"],
+            "source_text":          req.source_text,
+            "translation":          req.translation,
+            "source_lang":          req.source_lang,
+            "target_lang":          req.target_lang,
+            "verification_type":    req.verification_type,
+            "verification_content": req.verification_content,
+            "verification_polarity": req.verification_polarity,
+            "points":               -1,
+            "created_at":           datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        })
+        _save_data()
     return {"ok": True}
 
 
 @app.get("/api/suggestions")
 async def get_suggestions(user=Depends(_auth)):
-    conn = _get_db()
-    if user["role"] == "senior":
-        rows = conn.execute(
-            "SELECT * FROM suggestions ORDER BY points ASC, created_at DESC"
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT * FROM suggestions WHERE user_id = ? ORDER BY created_at DESC",
-            (user["id"],),
-        ).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    with _lock:
+        if user["role"] == "senior":
+            rows = sorted(
+                _db["suggestions"],
+                key=lambda s: (s["points"], s["created_at"]),
+            )
+        else:
+            rows = sorted(
+                [s for s in _db["suggestions"] if s["user_id"] == user["id"]],
+                key=lambda s: s["created_at"],
+                reverse=True,
+            )
+    return rows
 
 
 @app.post("/api/suggestions/{sid}/score")
@@ -383,15 +350,12 @@ async def score_suggestion(sid: int, req: ScoreReq, user=Depends(_auth)):
         raise HTTPException(status_code=403, detail="Only senior users can score suggestions")
     if req.points not in (0, 1, 2, 3):
         raise HTTPException(status_code=400, detail="Points must be 0, 1, 2, or 3")
-    conn = _get_db()
-    result = conn.execute(
-        "UPDATE suggestions SET points = ? WHERE id = ?", (req.points, sid)
-    )
-    if result.rowcount == 0:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Suggestion not found")
-    conn.commit()
-    conn.close()
+    with _lock:
+        suggestion = next((s for s in _db["suggestions"] if s["id"] == sid), None)
+        if suggestion is None:
+            raise HTTPException(status_code=404, detail="Suggestion not found")
+        suggestion["points"] = req.points
+        _save_data()
     return {"ok": True}
 
 

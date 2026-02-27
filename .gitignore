@@ -3,6 +3,7 @@ __pycache__/
 *.pyo
 data/*.sqlite
 data/*.db
+data/*.json
 .env
 *.egg-info/
 dist/
