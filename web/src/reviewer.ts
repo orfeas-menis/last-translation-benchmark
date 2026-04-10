@@ -87,8 +87,8 @@ function renderList(): void {
 }
 
 function renderSug(s: Suggestion): string {
-    const btnColors = ['#ef4444', '#f59e0b', '#3b82f6', '#22c55e'];
-    const btns = ([0, 1, 2, 3] as const).map(p => {
+    const btnColors = ['#ef4444', '#f59e0b', '#22c55e'];
+    const btns = ([0, 1, 2] as const).map(p => {
         const act = s.points === p ? ' active' : '';
         return `<button class="score-btn${act}" style="background:${btnColors[p]};color:#fff" data-id="${s.id}" data-points="${p}">${p}</button>`;
     }).join('');
@@ -99,7 +99,7 @@ function renderSug(s: Suggestion): string {
           <div class="sug-box"><div class="lbl">SOURCE</div>${escHtml(s.source_text)}</div>
           <div class="sug-box"><div class="lbl">TRANSLATION</div>${escHtml(s.translation)}</div>
         </div>
-        <div class="sug-verify"><b>${s.verification_type === 'regex' ? 'Regex' : 'LLM prompt'}:</b> <code>${escHtml(s.verification_content)}</code>${s.verification_type === 'regex' && s.verification_polarity === 'negative' ? ' <span style="color:#dc2626;font-size:0.85em">(must NOT match)</span>' : ''}</div>
+        <div class="sug-verify"><b>LLM prompt:</b> <code>${escHtml(s.verification_content)}</code></div>
         <div class="sug-scoring"><span class="score-label">Score:</span>${btns}</div>
     </div>`;
 }
@@ -110,6 +110,6 @@ function fmtDate(dt: string): string { return (dt ?? '').replace('T', ' ').slice
 
 function scoreBadge(p: number): string {
     if (p < 0) return '<span class="badge badge-pending">Pending</span>';
-    const labels = ['0 · Rejected', '1 · Poor', '2 · Good', '3 · Excellent'];
+    const labels = ['0 · Rejected', '1 · Good', '2 · Excellent'];
     return `<span class="badge badge-score-${p}">${labels[p]}</span>`;
 }

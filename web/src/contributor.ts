@@ -33,25 +33,6 @@ $(async () => {
     renderStats(currentUser.quota_remaining, currentUser.daily_quota, currentUser.total_points);
     loadMySuggestions();
 
-    // Verification type toggle
-    $('input[name=vtype]').on('change', function () {
-        const isLlm = $(this).val() === 'llm';
-        if (isLlm) {
-            $('#vc-label').html('LLM prompt <span class="hint">(used to verify the translation)</span>');
-            $('#vc-content').attr('placeholder', 'e.g. Does the translation preserve the pun from the source text?');
-            $('#polarity-row').hide();
-        } else {
-            $('#vc-label').html('Regex pattern <span class="hint">(matched against translation)</span>');
-            $('#vc-content').attr('placeholder', 'e.g. \\bword\\b');
-            $('#polarity-row').show();
-        }
-        // Re-compute inline verification whenever type/polarity changes
-        recomputeInlineVerification();
-    });
-
-    // Polarity toggle — re-compute inline verification
-    $('input[name=polarity]').on('change', recomputeInlineVerification);
-
     // Regex content change — re-compute inline verification live
     $('#vc-content').on('input', recomputeInlineVerification);
 
@@ -89,13 +70,11 @@ $(async () => {
     // Test verification (on the currently selected translation)
     $('#verify-btn').on('click', async () => {
         const translation = getSelectedTranslation();
-        const vtype       = String($('input[name=vtype]:checked').val());
         const vcontent    = String($('#vc-content').val() ?? '').trim();
         if (!translation) { $('#verify-result').html('<span class="msg-err">No translation selected</span>'); return; }
         if (!vcontent)    { $('#verify-result').html('<span class="msg-err">No verification content</span>'); return; }
-        const polarity = String($('input[name=polarity]:checked').val() || 'positive');
         try {
-            const data = await verify(translation, vtype, vcontent, polarity);
+            const data = await verify(translation, vcontent);
             const cls  = data.verified ? 'msg-ok' : 'msg-err';
             const icon = data.verified ? '✓' : '✗';
             $('#verify-result').html(`<span class="${cls}">${icon} ${escHtml(data.detail)}</span>`);
@@ -110,9 +89,7 @@ $(async () => {
         const translation          = getSelectedTranslation();
         const source_lang          = String($('#src-lang').val());
         const target_lang          = String($('#tgt-lang').val());
-        const verification_type    = String($('input[name=vtype]:checked').val());
         const verification_content = String($('#vc-content').val() ?? '').trim();
-        const verification_polarity = String($('input[name=polarity]:checked').val() || 'positive');
 
         if (!source_text || !translation || !verification_content) {
             $('#submit-status').html('<span class="msg-err">Please fill all required fields and translate first</span>');
@@ -121,7 +98,7 @@ $(async () => {
         try {
             await createSuggestion({
                 source_text, translation, source_lang, target_lang,
-                verification_type, verification_content, verification_polarity,
+                verification_content,
             });
             $('#submit-status').html('<span class="msg-ok">✓ Submitted!</span>');
             $('#src-text, #vc-content').val('');
@@ -173,14 +150,13 @@ function renderApiResults(): void {
 
 function computeVerifyBadge(translation: string | null): string {
     if (translation === null) return '';
-    const vtype   = String($('input[name=vtype]:checked').val());
     const vcontent = String($('#vc-content').val() ?? '').trim();
-    if (!vcontent || vtype !== 'regex') return '';
+    if (!vcontent || !vcontent.startsWith('#!regex')) return '';
     try {
-        const polarity = String($('input[name=polarity]:checked').val() || 'positive');
-        const matched  = new RegExp(vcontent, 'i').test(translation);
-        const passes   = polarity === 'negative' ? !matched : matched;
-        return passes
+        const rxContent = vcontent.split('\n').slice(1).join('\n').trim();
+        if (!rxContent) return '';
+        const matched  = new RegExp(rxContent, 'i').test(translation);
+        return matched
             ? '<span class="vpill vpill-pass">✓</span>'
             : '<span class="vpill vpill-fail">✗</span>';
     } catch { return ''; }
@@ -195,19 +171,18 @@ function recomputeInlineVerification(): void {
 }
 
 function updatePassCount(): void {
-    const vtype   = String($('input[name=vtype]:checked').val());
     const vcontent = String($('#vc-content').val() ?? '').trim();
-    if (!vcontent || vtype !== 'regex') { $('#pass-count').text(''); return; }
-    const polarity = String($('input[name=polarity]:checked').val() || 'positive');
+    if (!vcontent || !vcontent.startsWith('#!regex')) { $('#pass-count').text(''); return; }
     let pass = 0, total = 0;
     try {
-        const rx = new RegExp(vcontent, 'i');
+        const rxContent = vcontent.split('\n').slice(1).join('\n').trim();
+        if (!rxContent) { $('#pass-count').text(''); return; }
+        const rx = new RegExp(rxContent, 'i');
         lastResults.forEach(r => {
             if (r.translation === null) return;
             total++;
             const matched = rx.test(r.translation);
-            const passes  = polarity === 'negative' ? !matched : matched;
-            if (passes) pass++;
+            if (matched) pass++;
         });
         if (total === 0) { $('#pass-count').text(''); return; }
         const cls = pass === 0 ? 'count-fail' : (pass === total ? 'count-pass' : 'count-partial');
@@ -233,13 +208,12 @@ async function loadMySuggestions(): Promise<void> {
 
 function renderMySug(s: Suggestion): string {
     const srcPreview = s.source_text.length > 60 ? s.source_text.slice(0, 60) + '…' : s.source_text;
-    const polarity = s.verification_polarity === 'negative' ? ' (neg)' : '';
     return `<div class="sug-mini">
         <div class="sug-mini-meta">#${s.id} &middot; ${s.source_lang}&rarr;${s.target_lang} &middot; ${fmtDate(s.created_at)}</div>
         <div class="sug-mini-text">${escHtml(srcPreview)}</div>
         <div class="sug-mini-tr">${escHtml(s.translation)}</div>
         <div class="sug-mini-footer">
-          <code class="sug-mini-vc">${escHtml(s.verification_content)}${escHtml(polarity)}</code>
+          <code class="sug-mini-vc">${escHtml(s.verification_content)}</code>
           ${scoreBadge(s.points)}
         </div>
     </div>`;
@@ -251,6 +225,6 @@ function fmtDate(dt: string): string { return (dt ?? '').replace('T', ' ').slice
 
 function scoreBadge(p: number): string {
     if (p < 0) return '<span class="badge badge-pending">Pending</span>';
-    const labels = ['0 · Rejected', '1 · Poor', '2 · Good', '3 · Excellent'];
+    const labels = ['0 · Rejected', '1 · Good', '2 · Excellent'];
     return `<span class="badge badge-score-${p}">${labels[p]}</span>`;
 }

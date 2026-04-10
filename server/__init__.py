@@ -46,8 +46,8 @@ def _load_data() -> None:
     if not _db["users"]:
         default_users = [
             ("reviewer1", "reviewer123", "reviewer"),
-            ("contributor1", "ann123", "contributor"),
-            ("contributor2", "ann456", "contributor"),
+            ("contributor1", "contributor123", "contributor"),
+            ("contributor2", "contributor456", "contributor"),
         ]
         for uid, (username, password, role) in enumerate(default_users, start=1):
             _db["users"].append(
@@ -123,9 +123,7 @@ class TranslateReq(BaseModel):
 
 class VerifyReq(BaseModel):
     translation: str
-    verification_type: str
     verification_content: str
-    verification_polarity: str = "positive"
 
 
 class SuggestionReq(BaseModel):
@@ -133,9 +131,7 @@ class SuggestionReq(BaseModel):
     translation: str
     source_lang: str = "en"
     target_lang: str = "de"
-    verification_type: str
     verification_content: str
-    verification_polarity: str = "positive"
 
 
 class ScoreReq(BaseModel):
@@ -279,7 +275,15 @@ async def translate(req: TranslateReq, user=Depends(_auth)):
 
 @app.post("/api/verify")
 async def verify(req: VerifyReq, user=Depends(_auth)):
-    if req.verification_type == "regex":
+    content_stripped = req.verification_content.strip()
+    is_regex = False
+    
+    if content_stripped.startswith("#!regex"):
+        is_regex = True
+        lines = content_stripped.split("\n", 1)
+        req.verification_content = lines[1].strip() if len(lines) > 1 else ""
+
+    if is_regex:
         try:
             matched = bool(
                 re.search(req.verification_content, req.translation, re.IGNORECASE)
@@ -288,54 +292,43 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
             raise HTTPException(
                 status_code=400, detail=f"Invalid regex: {exc}"
             ) from exc
-        if req.verification_polarity == "negative":
-            verified = not matched
-            detail = "not matched (passes)" if verified else "matched (fails)"
-        else:
-            verified = matched
-            detail = "matched" if verified else "no match"
-        return {"verified": verified, "detail": detail}
+        return {"verified": matched, "detail": "matched" if matched else "no match"}
 
-    if req.verification_type == "llm":
-        if not OPENAI_API_KEY:
-            return {
-                "verified": True,
-                "detail": "LLM verification skipped (no API key configured)",
-            }
-        try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(
-                    "https://api.openai.com/v1/chat/completions",
-                    headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
-                    json={
-                        "model": "gpt-4o-mini",
-                        "messages": [
-                            {
-                                "role": "system",
-                                "content": "You verify if a translation satisfies a criterion. Reply only YES or NO.",
-                            },
-                            {
-                                "role": "user",
-                                "content": (
-                                    f"Criterion: {req.verification_content}\n\n"
-                                    f"Translation to verify: {req.translation}"
-                                ),
-                            },
-                        ],
-                        "max_tokens": 5,
-                    },
-                    timeout=15,
-                )
-            answer = resp.json()["choices"][0]["message"]["content"].strip().upper()
-        except Exception as exc:
-            raise HTTPException(
-                status_code=502, detail=f"LLM API error: {exc}"
-            ) from exc
-        return {"verified": "YES" in answer, "detail": f"LLM: {answer}"}
-
-    raise HTTPException(
-        status_code=400, detail="verification_type must be 'regex' or 'llm'"
-    )
+    if not OPENAI_API_KEY:
+        return {
+            "verified": True,
+            "detail": "LLM verification skipped (no API key configured)",
+        }
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+                json={
+                    "model": "gpt-4o-mini",
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "You verify if a translation satisfies a criterion. Reply only YES or NO.",
+                        },
+                        {
+                            "role": "user",
+                            "content": (
+                                f"Criterion: {req.verification_content}\n\n"
+                                f"Translation to verify: {req.translation}"
+                            ),
+                        },
+                    ],
+                    "max_tokens": 5,
+                },
+                timeout=15,
+            )
+        answer = resp.json()["choices"][0]["message"]["content"].strip().upper()
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502, detail=f"LLM API error: {exc}"
+        ) from exc
+    return {"verified": "YES" in answer, "detail": f"LLM: {answer}"}
 
 
 # ---------------------------------------------------------------------------
@@ -349,6 +342,7 @@ async def create_suggestion(req: SuggestionReq, user=Depends(_auth)):
         raise HTTPException(
             status_code=403, detail="Only contributors can submit suggestions"
         )
+    
     with _lock:
         sid = _next_id(_db["suggestions"])
         _db["suggestions"].append(
@@ -360,9 +354,7 @@ async def create_suggestion(req: SuggestionReq, user=Depends(_auth)):
                 "translation": req.translation,
                 "source_lang": req.source_lang,
                 "target_lang": req.target_lang,
-                "verification_type": req.verification_type,
                 "verification_content": req.verification_content,
-                "verification_polarity": req.verification_polarity,
                 "points": -1,
                 "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             }
@@ -394,8 +386,8 @@ async def score_suggestion(sid: int, req: ScoreReq, user=Depends(_auth)):
         raise HTTPException(
             status_code=403, detail="Only reviewer users can score suggestions"
         )
-    if req.points not in (0, 1, 2, 3):
-        raise HTTPException(status_code=400, detail="Points must be 0, 1, 2, or 3")
+    if req.points not in (0, 1, 2):
+        raise HTTPException(status_code=400, detail="Points must be 0, 1, or 2")
     with _lock:
         suggestion = next((s for s in _db["suggestions"] if s["id"] == sid), None)
         if suggestion is None:

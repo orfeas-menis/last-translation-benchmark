@@ -21,9 +21,7 @@ export interface Suggestion {
     translation: string;
     source_lang: string;
     target_lang: string;
-    verification_type: 'regex' | 'llm';
     verification_content: string;
-    verification_polarity: 'positive' | 'negative';
     points: number;
     created_at: string;
 }
@@ -89,12 +87,10 @@ export function translate(text: string, source_lang: string, target_lang: string
 
 export function verify(
     translation: string,
-    verification_type: string,
     verification_content: string,
-    verification_polarity: string = 'positive',
 ) {
     return apiCall<{ verified: boolean; detail: string }>(
-        'POST', '/api/verify', { translation, verification_type, verification_content, verification_polarity }
+        'POST', '/api/verify', { translation, verification_content }
     );
 }
 
@@ -107,9 +103,7 @@ export function createSuggestion(data: {
     translation: string;
     source_lang: string;
     target_lang: string;
-    verification_type: string;
     verification_content: string;
-    verification_polarity: string;
 }) {
     return apiCall<{ ok: boolean }>('POST', '/api/suggestions', data);
 }
