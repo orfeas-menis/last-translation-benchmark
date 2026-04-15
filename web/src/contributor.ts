@@ -14,8 +14,29 @@ let lastResults: ApiResult[] = [];
 // Index into lastResults for the selected translation
 let selectedIdx = 0;
 
+const LANGUAGES = [
+    { name: 'English', code: 'en' },
+    { name: 'French', code: 'fr' },
+    { name: 'German', code: 'de' },
+    { name: 'Spanish', code: 'es' },
+    { name: 'Chinese', code: 'zh' },
+    { name: 'Japanese', code: 'ja' },
+    { name: 'Russian', code: 'ru' },
+    { name: 'Arabic', code: 'ar' },
+    { name: 'Portuguese', code: 'pt' },
+    { name: 'Italian', code: 'it' },
+    { name: 'Czech', code: 'cs' },
+    { name: 'Polish', code: 'pl' },
+    { name: 'Thai', code: 'th' },
+    { name: 'Modern Standard Arabic', code: 'ar-MSA' },
+]
+
 $(async () => {
     if (!getToken()) { window.location.href = '/'; return; }
+
+    const langOptions = LANGUAGES.map(l => `<option value="${l.name}">${l.name}</option>`).join('');
+    $('#src-langs').html(langOptions);
+    $('#tgt-langs').html(langOptions);
 
     try {
         currentUser = await getMe();

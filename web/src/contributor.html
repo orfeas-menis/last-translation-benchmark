@@ -186,6 +186,17 @@
     #lang-row>* {
       flex: 1;
     }
+
+    .lang-input {
+      box-sizing: border-box;
+      height: 35px;
+      padding: 7px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 5px;
+      font-size: 0.92em;
+      background: #fff;
+      width: 100%;
+    }
   </style>
 </head>
 
@@ -224,33 +235,13 @@
           <div id="lang-row">
             <div>
               <label for="src-lang">Source Language</label>
-              <select id="src-lang">
-                <option value="en">English</option>
-                <option value="fr">French</option>
-                <option value="de">German</option>
-                <option value="es">Spanish</option>
-                <option value="zh">Chinese</option>
-                <option value="ja">Japanese</option>
-                <option value="ru">Russian</option>
-                <option value="ar">Arabic</option>
-                <option value="pt">Portuguese</option>
-                <option value="it">Italian</option>
-              </select>
+              <input type="text" id="src-lang" list="src-langs" value="English" placeholder="e.g. English, custom..." class="lang-input">
+              <datalist id="src-langs"></datalist>
             </div>
             <div>
               <label for="tgt-lang">Target Language</label>
-              <select id="tgt-lang">
-                <option value="de">German</option>
-                <option value="en">English</option>
-                <option value="fr">French</option>
-                <option value="es">Spanish</option>
-                <option value="zh">Chinese</option>
-                <option value="ja">Japanese</option>
-                <option value="ru">Russian</option>
-                <option value="ar">Arabic</option>
-                <option value="pt">Portuguese</option>
-                <option value="it">Italian</option>
-              </select>
+              <input type="text" id="tgt-lang" list="tgt-langs" value="German" placeholder="e.g. German, custom..." class="lang-input">
+              <datalist id="tgt-langs"></datalist>
             </div>
           </div>
 
