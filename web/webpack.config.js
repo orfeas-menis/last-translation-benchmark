@@ -2,6 +2,7 @@ const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
+const CopyWebpackPlugin = require('copy-webpack-plugin');
 
 module.exports = (env, argv) => ({
   entry: {
@@ -49,6 +50,11 @@ module.exports = (env, argv) => ({
       filename: 'reviewer.html',
       chunks: ['reviewer'],
       hash: true,
+    }),
+    new CopyWebpackPlugin({
+      patterns: [
+        { from: 'src/favicon.svg', to: '.' },
+      ],
     }),
   ],
   devServer: {
