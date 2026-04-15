@@ -31,10 +31,8 @@ $(async () => {
 
     $('#ann-info').text(`${currentUser.username} · Contributor`);
     renderStats(currentUser.quota_remaining, currentUser.daily_quota, currentUser.total_points);
-    loadMySuggestions();
+    loadMyContributions();
 
-    // Regex content change — re-compute inline verification live
-    $('#vc-content').on('input', recomputeInlineVerification);
 
     // Auto-translate
     $('#tr-btn').on('click', async () => {
@@ -54,6 +52,8 @@ $(async () => {
             currentUser!.quota_remaining = data.quota_remaining;
             renderStats(data.quota_remaining, currentUser!.daily_quota, currentUser!.total_points);
             renderApiResults();
+            $('#pass-count').text('');
+            $('#verify-result').text('');
             $('#tr-status').text('✓ Done');
         } catch (err) {
             $('#tr-status').text(`✗ ${err}`);
@@ -67,17 +67,32 @@ $(async () => {
         selectedIdx = parseInt(String($(this).val()));
     });
 
-    // Test verification (on the currently selected translation)
+    // Test verification (on all translations)
     $('#verify-btn').on('click', async () => {
-        const translation = getSelectedTranslation();
-        const vcontent    = String($('#vc-content').val() ?? '').trim();
-        if (!translation) { $('#verify-result').html('<span class="msg-err">No translation selected</span>'); return; }
-        if (!vcontent)    { $('#verify-result').html('<span class="msg-err">No verification content</span>'); return; }
+        const translations = lastResults.map(r => r.translation).filter(t => t !== null) as string[];
+        const vcontent = String($('#vc-content').val() ?? '').trim();
+        if (translations.length === 0) { $('#verify-result').html('<span class="msg-err">No translations available</span>'); return; }
+        if (!vcontent) { $('#verify-result').html('<span class="msg-err">No verification content</span>'); return; }
+
+        $('#verify-result').html('<span style="color:#64748b;font-size:0.9em">Verifying...</span>');
         try {
-            const data = await verify(translation, vcontent);
-            const cls  = data.verified ? 'msg-ok' : 'msg-err';
-            const icon = data.verified ? '✓' : '✗';
-            $('#verify-result').html(`<span class="${cls}">${icon} ${escHtml(data.detail)}</span>`);
+            const data = await verify(translations, vcontent);
+
+            let resultIdx = 0;
+            let pass = 0;
+            lastResults.forEach((r, i) => {
+                if (r.translation !== null) {
+                    const verified = data.results[resultIdx++];
+                    const badge = verified ? '<span class="vpill vpill-pass">✓</span>' : '<span class="vpill vpill-fail">✗</span>';
+                    $(`[data-idx="${i}"]`).html(badge);
+                    if (verified) pass++;
+                } else {
+                    $(`[data-idx="${i}"]`).html('');
+                }
+            });
+            const cls = pass === 0 ? 'count-fail' : (pass === translations.length ? 'count-pass' : 'count-partial');
+            $('#verify-result').html("");
+            $('#pass-count').html(`<span class="${cls}">${pass}/${translations.length} pass verification</span>`);
         } catch (err) {
             $('#verify-result').html(`<span class="msg-err">${escHtml(String(err))}</span>`);
         }
@@ -85,10 +100,10 @@ $(async () => {
 
     // Submit suggestion
     $('#submit-btn').on('click', async () => {
-        const source_text          = String($('#src-text').val() ?? '').trim();
-        const translation          = getSelectedTranslation();
-        const source_lang          = String($('#src-lang').val());
-        const target_lang          = String($('#tgt-lang').val());
+        const source_text = String($('#src-text').val() ?? '').trim();
+        const translation = getSelectedTranslation();
+        const source_lang = String($('#src-lang').val());
+        const target_lang = String($('#tgt-lang').val());
         const verification_content = String($('#vc-content').val() ?? '').trim();
 
         if (!source_text || !translation || !verification_content) {
@@ -105,7 +120,7 @@ $(async () => {
             $('#verify-result').html('');
             lastResults = [];
             $('#api-results').hide();
-            loadMySuggestions();
+            loadMyContributions();
             setTimeout(() => $('#submit-status').html(''), 3000);
         } catch (err) {
             $('#submit-status').html(`<span class="msg-err">${escHtml(String(err))}</span>`);
@@ -134,7 +149,7 @@ function renderApiResults(): void {
     $body.html(lastResults.map((r, i) => {
         const isSelected = i === selectedIdx;
         const trText = r.translation ?? `<em class="tr-error">${escHtml(r.error ?? 'Error')}</em>`;
-        const verifyBadge = computeVerifyBadge(r.translation);
+        const verifyBadge = '';
         return `<div class="api-result-row">
           <label class="api-radio">
             <input type="radio" name="tr-select" value="${i}"${isSelected ? ' checked' : ''}${r.translation === null ? ' disabled' : ''}>
@@ -145,50 +160,9 @@ function renderApiResults(): void {
         </div>`;
     }).join(''));
     $('#api-results').show();
-    updatePassCount();
 }
 
-function computeVerifyBadge(translation: string | null): string {
-    if (translation === null) return '';
-    const vcontent = String($('#vc-content').val() ?? '').trim();
-    if (!vcontent || !vcontent.startsWith('#!regex')) return '';
-    try {
-        const rxContent = vcontent.split('\n').slice(1).join('\n').trim();
-        if (!rxContent) return '';
-        const matched  = new RegExp(rxContent, 'i').test(translation);
-        return matched
-            ? '<span class="vpill vpill-pass">✓</span>'
-            : '<span class="vpill vpill-fail">✗</span>';
-    } catch { return ''; }
-}
 
-function recomputeInlineVerification(): void {
-    if (!lastResults.length) return;
-    lastResults.forEach((r, i) => {
-        $(`[data-idx="${i}"]`).html(computeVerifyBadge(r.translation));
-    });
-    updatePassCount();
-}
-
-function updatePassCount(): void {
-    const vcontent = String($('#vc-content').val() ?? '').trim();
-    if (!vcontent || !vcontent.startsWith('#!regex')) { $('#pass-count').text(''); return; }
-    let pass = 0, total = 0;
-    try {
-        const rxContent = vcontent.split('\n').slice(1).join('\n').trim();
-        if (!rxContent) { $('#pass-count').text(''); return; }
-        const rx = new RegExp(rxContent, 'i');
-        lastResults.forEach(r => {
-            if (r.translation === null) return;
-            total++;
-            const matched = rx.test(r.translation);
-            if (matched) pass++;
-        });
-        if (total === 0) { $('#pass-count').text(''); return; }
-        const cls = pass === 0 ? 'count-fail' : (pass === total ? 'count-pass' : 'count-partial');
-        $('#pass-count').html(`<span class="${cls}">${pass}/${total} pass verification</span>`);
-    } catch { $('#pass-count').text(''); }
-}
 
 function getSelectedTranslation(): string {
     const r = lastResults[selectedIdx];
@@ -197,7 +171,7 @@ function getSelectedTranslation(): string {
 
 // ---- Sidebar: my submissions ----
 
-async function loadMySuggestions(): Promise<void> {
+async function loadMyContributions(): Promise<void> {
     try {
         const sugs = await getSuggestions();
         const $el = $('#my-list');

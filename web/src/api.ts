@@ -86,11 +86,11 @@ export function translate(text: string, source_lang: string, target_lang: string
 }
 
 export function verify(
-    translation: string,
+    translations: string[],
     verification_content: string,
 ) {
-    return apiCall<{ verified: boolean; detail: string }>(
-        'POST', '/api/verify', { translation, verification_content }
+    return apiCall<{ results: boolean[]; detail: string }>(
+        'POST', '/api/verify', { translations, verification_content }
     );
 }
 

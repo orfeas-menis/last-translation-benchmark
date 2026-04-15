@@ -122,7 +122,7 @@ class TranslateReq(BaseModel):
 
 
 class VerifyReq(BaseModel):
-    translation: str
+    translations: list[str]
     verification_content: str
 
 
@@ -284,51 +284,61 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
         req.verification_content = lines[1].strip() if len(lines) > 1 else ""
 
     if is_regex:
+        results = []
         try:
-            matched = bool(
-                re.search(req.verification_content, req.translation, re.IGNORECASE)
-            )
+            pattern = re.compile(req.verification_content, re.IGNORECASE)
+            for t in req.translations:
+                results.append(bool(pattern.search(t)))
         except re.error as exc:
             raise HTTPException(
                 status_code=400, detail=f"Invalid regex: {exc}"
             ) from exc
-        return {"verified": matched, "detail": "matched" if matched else "no match"}
+        pass_count = sum(results)
+        return {"results": results, "detail": f"{pass_count} passing, {len(results)-pass_count} failing"}
 
     if not OPENAI_API_KEY:
+        results = [True for _ in req.translations]
         return {
-            "verified": True,
+            "results": results,
             "detail": "LLM verification skipped (no API key configured)",
         }
     try:
+        results = []
         async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
-                json={
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You verify if a translation satisfies a criterion. Reply only YES or NO.",
-                        },
-                        {
-                            "role": "user",
-                            "content": (
-                                f"Criterion: {req.verification_content}\n\n"
-                                f"Translation to verify: {req.translation}"
-                            ),
-                        },
-                    ],
-                    "max_tokens": 5,
-                },
-                timeout=15,
-            )
-        answer = resp.json()["choices"][0]["message"]["content"].strip().upper()
+            async def _verify_llm(t: str) -> bool:
+                resp = await client.post(
+                    "https://api.openai.com/v1/chat/completions",
+                    headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
+                    json={
+                        "model": "gpt-4o-mini",
+                        "messages": [
+                            {
+                                "role": "system",
+                                "content": "You verify if a translation satisfies a criterion. Reply only YES or NO.",
+                            },
+                            {
+                                "role": "user",
+                                "content": (
+                                    f"Criterion: {req.verification_content}\n\n"
+                                    f"Translation to verify: {t}"
+                                ),
+                            },
+                        ],
+                        "max_tokens": 5,
+                    },
+                    timeout=15,
+                )
+                answer = resp.json()["choices"][0]["message"]["content"].strip().upper()
+                return "YES" in answer
+            
+            results = await asyncio.gather(*[_verify_llm(t) for t in req.translations])
     except Exception as exc:
         raise HTTPException(
             status_code=502, detail=f"LLM API error: {exc}"
         ) from exc
-    return {"verified": "YES" in answer, "detail": f"LLM: {answer}"}
+    
+    pass_count = sum(results)
+    return {"results": results, "detail": f"{pass_count} passing, {len(results)-pass_count} failing"}
 
 
 # ---------------------------------------------------------------------------
