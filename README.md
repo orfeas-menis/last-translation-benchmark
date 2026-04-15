@@ -12,6 +12,7 @@ There are two user roles:
 ```bash
 cd web
 npm install; npm run build
+cd ../
 pip install -e .
 uvicorn server:app --reload
 ```

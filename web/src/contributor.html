@@ -4,7 +4,188 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LTB — Contributor</title>
+  <title>Last Translation Benchmark</title>
+  <style>
+    /* ---------- stats bar ---------- */
+    /* ---------- stats bar ---------- */
+    #stats-bar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 8px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    /* ---------- two-column contributor layout ---------- */
+    #contributor-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+      align-items: start;
+    }
+
+    @media (max-width: 800px) {
+      #contributor-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    #main-col .card {
+      margin-bottom: 0;
+    }
+
+    #sidebar-card {
+      height: calc(100vh - 140px);
+      overflow-y: auto;
+      position: sticky;
+      top: 20px;
+    }
+
+    /* ---------- sidebar mini-submission ---------- */
+    .sug-mini {
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 0.85em;
+    }
+
+    .sug-mini-meta {
+      font-size: 0.75em;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .sug-mini-text {
+      color: #1e293b;
+      font-weight: 500;
+      margin-bottom: 2px;
+      word-break: break-word;
+    }
+
+    .sug-mini-tr {
+      color: #475569;
+      font-size: 0.88em;
+      margin-bottom: 4px;
+      word-break: break-word;
+    }
+
+    .sug-mini-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .sug-mini-vc {
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 0.82em;
+      max-width: 150px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-block;
+    }
+
+    /* ---------- API results table ---------- */
+    .count-pass {
+      color: #16a34a;
+      font-weight: 600;
+    }
+
+    .count-fail {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    .count-partial {
+      color: #d97706;
+      font-weight: 600;
+    }
+
+    .api-result-row {
+      display: grid;
+      grid-template-columns: 140px 1fr 36px;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #e5e7eb;
+      border-radius: 5px;
+      padding: 8px 10px;
+      margin-bottom: 6px;
+      background: #f8fafc;
+    }
+
+    .api-result-row:has(input:checked) {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+
+    .api-radio {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-size: 0.85em;
+      font-weight: 600;
+      color: #1e293b;
+      margin: 0;
+    }
+
+    .api-radio input[type=radio] {
+      width: auto;
+      margin: 0;
+    }
+
+    .api-name {
+      white-space: nowrap;
+    }
+
+    .tr-display {
+      font-size: 0.9em;
+      color: #374151;
+      word-break: break-word;
+    }
+
+    .tr-error {
+      color: #dc2626;
+      font-style: italic;
+      font-size: 0.85em;
+    }
+
+    .vpill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 0.8em;
+      font-weight: 700;
+    }
+
+    .vpill-pass {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .vpill-fail {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    /* ---------- misc contributor items ---------- */
+    #lang-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    #lang-row>* {
+      flex: 1;
+    }
+  </style>
 </head>
 
 <body>
@@ -17,28 +198,29 @@
   </header>
 
   <!-- stats bar -->
-  <div class="stats-bar">
-    <div class="quota-section">
-      <span class="quota-label">Daily quota:</span>
-      <div class="bar">
-        <div class="fill" id="quota-fill" style="width:100%"></div>
+  <div id="stats-bar">
+    <div style="display: flex; align-items: center; gap: 8px; flex: 1; min-width: 220px;">
+      <span style="font-size: 0.82em; color: #475569; white-space: nowrap;">Daily quota:</span>
+      <div style="flex: 1; height: 6px; background: #e5e7eb; border-radius: 4px; overflow: hidden; min-width: 80px;">
+        <div id="quota-fill"
+          style="height: 100%; background: #3b82f6; border-radius: 4px; transition: width .3s; width: 100%;"></div>
       </div>
-      <span id="quota-text" class="quota-label"></span>
+      <span id="quota-text" style="font-size: 0.82em; color: #475569; white-space: nowrap;"></span>
     </div>
-    <div class="points-section">
+    <div style="font-size: 0.85em; color: #475569; white-space: nowrap; font-weight: 500;">
       ⭐ <span id="total-points">0</span> points earned
     </div>
   </div>
 
   <div class="container">
-    <div class="contributor-layout">
+    <div id="contributor-layout">
 
       <!-- ===== MAIN FORM COLUMN ===== -->
-      <div class="main-col">
+      <div id="main-col">
         <div class="card">
           <h2>Submit New Suggestion</h2>
 
-          <div class="row2">
+          <div id="lang-row">
             <div>
               <label for="src-lang">Source Language</label>
               <select id="src-lang">
@@ -74,27 +256,29 @@
           <label for="src-text">Source Text <span class="hint">(the difficult-to-translate text)</span></label>
           <textarea id="src-text" placeholder="Enter the source text…"></textarea>
 
-          <div class="inline-row">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
             <button class="btn btn-secondary" id="tr-btn">⟳ Translate by 5 models</button>
             <span id="tr-status" style="font-size:0.85em;color:#64748b"></span>
           </div>
 
           <!-- API results table (shown after translation) -->
           <div id="api-results" style="display:none">
-            <div class="api-results-header">
-              <span class="api-results-label">Translations</span>
-              <span id="pass-count" class="pass-count"></span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <span style="font-size: 0.85em; font-weight: 600; color: #475569;">Translations</span>
+              <span id="pass-count" style="font-size: 0.82em;"></span>
             </div>
             <div id="api-results-body"></div>
           </div>
 
-          <label id="vc-label" for="vc-content">LLM prompt <span class="hint">(used to verify the
-              translation)</span></label>
+          <label id="vc-label" for="vc-content">
+            LLM prompt
+            <span class="hint">(used to verify the translation)</span>
+          </label>
           <textarea id="vc-content"
             placeholder="e.g. Does the translation preserve the pun from the source text? (To use regex, start with #!regex)"
             style="min-height:56px"></textarea>
 
-          <div class="inline-row">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap;">
             <button class="btn btn-secondary" id="verify-btn">✓ Test Verification</button>
             <span id="verify-result"></span>
           </div>
@@ -105,8 +289,8 @@
       </div>
 
       <!-- ===== SIDEBAR COLUMN ===== -->
-      <div class="sidebar-col">
-        <div class="card sidebar-card">
+      <div>
+        <div id="sidebar-card" class="card">
           <h2>My Submissions</h2>
           <div id="my-list">
             <div class="empty">No submissions yet</div>
