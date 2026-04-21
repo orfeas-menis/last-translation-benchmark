@@ -11,8 +11,6 @@ let currentUser: User | null = null;
 // Last set of API translation results
 type ApiResult = { api: string; translation: string | null; error: string | null };
 let lastResults: ApiResult[] = [];
-// Index into lastResults for the selected translation
-let selectedIdx = 0;
 
 const LANGUAGES = [
     { name: 'Afrikaans', code: 'af' },
@@ -187,8 +185,6 @@ $(async () => {
                 String($('#tgt-lang').val()),
             );
             lastResults = data.results;
-            selectedIdx = data.results.findIndex(r => r.translation !== null);
-            if (selectedIdx < 0) selectedIdx = 0;
             currentUser!.quota_remaining = data.quota_remaining;
             renderStats(data.quota_remaining, currentUser!.daily_quota, currentUser!.total_points);
             renderApiResults();
@@ -202,10 +198,6 @@ $(async () => {
         }
     });
 
-    // Select translation radio (event delegation)
-    $('#api-results-body').on('change', 'input[name=tr-select]', function () {
-        selectedIdx = parseInt(String($(this).val()));
-    });
 
     // Test verification (on all translations)
     $('#verify-btn').on('click', async () => {
@@ -241,20 +233,20 @@ $(async () => {
     // Submit submission
     $('#submit-btn').on('click', async () => {
         const source_text = String($('#src-text').val() ?? '').trim();
-        const translation = getSelectedTranslation();
+        const translations = lastResults.map(r => r.translation).filter(t => t !== null) as string[];
         const source_lang = String($('#src-lang').val());
         const target_lang = String($('#tgt-lang').val());
         const verification_content = String($('#vc-content').val() ?? '').trim();
 
-        if (!source_text || !translation || !verification_content) {
+        if (!source_text || translations.length === 0 || !verification_content) {
             $('#submit-status').html('<span class="msg-err">Please fill all required fields and translate first</span>');
             return;
         }
         try {
-            await createSubmission({
+            await Promise.all(translations.map(translation => createSubmission({
                 source_text, translation, source_lang, target_lang,
                 verification_content,
-            });
+            })));
             $('#submit-status').html('<span class="msg-ok">✓ Submitted!</span>');
             $('#src-text, #vc-content').val('');
             $('#verify-result').html('');
@@ -287,26 +279,15 @@ function renderStats(remaining: number, total: number, points: number): void {
 function renderApiResults(): void {
     const $body = $('#api-results-body');
     $body.html(lastResults.map((r, i) => {
-        const isSelected = i === selectedIdx;
         const trText = r.translation ?? `<em class="tr-error">${escHtml(r.error ?? 'Error')}</em>`;
         const verifyBadge = '';
         return `<div class="api-result-row">
-          <label class="api-radio">
-            <input type="radio" name="tr-select" value="${i}"${isSelected ? ' checked' : ''}${r.translation === null ? ' disabled' : ''}>
-            <span class="api-name">${escHtml(r.api)}</span>
-          </label>
+          <span class="api-name">${escHtml(r.api)}</span>
           <div class="tr-display">${trText}</div>
           <span class="verify-pill" data-idx="${i}">${verifyBadge}</span>
         </div>`;
     }).join(''));
     $('#api-results').show();
-}
-
-
-
-function getSelectedTranslation(): string {
-    const r = lastResults[selectedIdx];
-    return r?.translation ?? '';
 }
 
 // ---- Sidebar: my submissions ----

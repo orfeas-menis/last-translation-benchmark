@@ -48,9 +48,9 @@ def _load_data() -> None:
     # Seed default users on first run
     if not _db["users"]:
         default_users = [
-            ("reviewer1", "reviewer123", "reviewer"),
-            ("contributor1", "contributor123", "contributor"),
-            ("contributor2", "contributor456", "contributor"),
+            ("r1", "r1", "reviewer"),
+            ("c1", "c1", "contributor"),
+            ("c2", "c2", "contributor"),
         ]
         for uid, (username, password, role) in enumerate(default_users, start=1):
             _db["users"].append(
@@ -199,6 +199,7 @@ async def me(user=Depends(_auth)):
 # Routes — translation + verification
 # ---------------------------------------------------------------------------
 
+
 @app.post("/api/translate")
 async def translate(req: TranslateReq, user=Depends(_auth)):
     if user["role"] != "contributor":
@@ -231,7 +232,7 @@ async def translate(req: TranslateReq, user=Depends(_auth)):
 async def verify(req: VerifyReq, user=Depends(_auth)):
     content_stripped = req.verification_content.strip()
     is_regex = False
-    
+
     if content_stripped.startswith("#!regex"):
         is_regex = True
         lines = content_stripped.split("\n", 1)
@@ -248,7 +249,10 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
                 status_code=400, detail=f"Invalid regex: {exc}"
             ) from exc
         pass_count = sum(results)
-        return {"results": results, "detail": f"{pass_count} passing, {len(results)-pass_count} failing"}
+        return {
+            "results": results,
+            "detail": f"{pass_count} passing, {len(results) - pass_count} failing",
+        }
 
     if not OPENAI_API_KEY:
         results = [True for _ in req.translations]
@@ -259,6 +263,7 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
     try:
         results = []
         async with httpx.AsyncClient() as client:
+
             async def _verify_llm(t: str) -> bool:
                 resp = await client.post(
                     "https://api.openai.com/v1/chat/completions",
@@ -284,15 +289,16 @@ async def verify(req: VerifyReq, user=Depends(_auth)):
                 )
                 answer = resp.json()["choices"][0]["message"]["content"].strip().upper()
                 return "YES" in answer
-            
+
             results = await asyncio.gather(*[_verify_llm(t) for t in req.translations])
     except Exception as exc:
-        raise HTTPException(
-            status_code=502, detail=f"LLM API error: {exc}"
-        ) from exc
-    
+        raise HTTPException(status_code=502, detail=f"LLM API error: {exc}") from exc
+
     pass_count = sum(results)
-    return {"results": results, "detail": f"{pass_count} passing, {len(results)-pass_count} failing"}
+    return {
+        "results": results,
+        "detail": f"{pass_count} passing, {len(results) - pass_count} failing",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -306,7 +312,7 @@ async def create_submission(req: SubmissionReq, user=Depends(_auth)):
         raise HTTPException(
             status_code=403, detail="Only contributors can submit submissions"
         )
-    
+
     with _lock:
         sid = _next_id(_db["submissions"])
         _db["submissions"].append(

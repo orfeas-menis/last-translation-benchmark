@@ -72,40 +72,6 @@ header button:hover {
 
 
 
-/* ---------- login ---------- */
-.login-wrap {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-}
-
-.login-box {
-  background: #fff;
-  padding: 40px;
-  border-radius: 10px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, .12);
-  width: 340px;
-}
-
-.login-box h1 {
-  margin: 0 0 6px;
-  font-size: 1.35em;
-  color: #1e293b;
-}
-
-.login-box .sub {
-  color: #64748b;
-  font-size: 0.88em;
-  margin: 0 0 24px;
-}
-
-.demo-hint {
-  font-size: 0.78em;
-  color: #94a3b8;
-  margin-top: 18px;
-}
-
 /* ---------- form elements ---------- */
 label {
   display: block;
@@ -121,7 +87,6 @@ label {
 }
 
 input[type=text],
-input[type=password],
 textarea,
 select {
   width: 100%;

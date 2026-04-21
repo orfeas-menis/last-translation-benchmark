@@ -22,11 +22,11 @@ Then open <http://localhost:8000>.
 
 ### Default accounts
 
-| Username       | Password         | Role        |
-|----------------|------------------|-------------|
-| `reviewer1`    | `reviewer123`    | Reviewer    |
-| `contributor1` | `contributor123` | Contributor |
-| `contributor2` | `contributor223` | Contributor |
+| Username | Password | Role        |
+|----------|----------|-------------|
+| `r1`     | `r1`     | Reviewer    |
+| `c1`     | `c1`     | Contributor |
+| `c2`     | `c2`     | Contributor |
 
 ### Environment variables
 
