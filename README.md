@@ -10,11 +10,10 @@ There are two user roles:
 ## Quick start
 
 ```bash
-cd web
-npm install; npm run build
-cd ../
+npm install --prefix web
+npm run build --prefix web/
 pip install -e .
-uvicorn server:app --reload
+python3 server
 ```
 
 <!-- TODO: print this link instead -->
