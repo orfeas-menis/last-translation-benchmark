@@ -22,6 +22,8 @@ from .utils import (
     DAILY_QUOTA,
     DATA_PATH,
     OPENAI_API_KEY,
+)
+from .services import (
     _call_deepl,
     _call_google,
     _call_libre,
@@ -213,13 +215,12 @@ async def translate(req: TranslateReq, user=Depends(_auth)):
         if quota_used >= DAILY_QUOTA:
             raise HTTPException(status_code=429, detail="Daily quota exceeded")
 
-    async with httpx.AsyncClient() as client:
-        results = await asyncio.gather(
-            _call_mymemory(client, req.text, req.source_lang, req.target_lang),
-            asyncio.to_thread(_call_google, req.text, req.source_lang, req.target_lang),
-            asyncio.to_thread(_call_deepl, req.text, req.source_lang, req.target_lang),
-            asyncio.to_thread(_call_libre, req.text, req.source_lang, req.target_lang),
-        )
+    results = await asyncio.gather(
+        asyncio.to_thread(_call_mymemory, req.text, req.source_lang, req.target_lang),
+        asyncio.to_thread(_call_google, req.text, req.source_lang, req.target_lang),
+        asyncio.to_thread(_call_deepl, req.text, req.source_lang, req.target_lang),
+        asyncio.to_thread(_call_libre, req.text, req.source_lang, req.target_lang),
+    )
 
     with _lock:
         user["quota_used"] = quota_used + 1
