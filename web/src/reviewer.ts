@@ -37,7 +37,7 @@ $(async () => {
 
     // Score buttons (event delegation — list re-renders on each load)
     $('#sen-list').on('click', '.score-btn', async function () {
-        const id     = parseInt(String($(this).data('id')));
+        const id = parseInt(String($(this).data('id')));
         const points = parseInt(String($(this).data('points')));
         try {
             await scoreSubmission(id, points);
@@ -99,7 +99,7 @@ function renderSug(s: Submission): string {
           <div class="sug-box"><div class="lbl">SOURCE</div>${escHtml(s.source_text)}</div>
           <div class="sug-box"><div class="lbl">TRANSLATION</div>${escHtml(s.translation)}</div>
         </div>
-        <div class="sug-verify"><b>LLM prompt:</b> <code>${escHtml(s.verification_content)}</code></div>
+        <div class="sug-verify"><b>LLM prompt:</b> <code>${escHtml(s.verification_rule)}</code></div>
         <div class="sug-scoring"><span class="score-label">Score:</span>${btns}</div>
     </div>`;
 }

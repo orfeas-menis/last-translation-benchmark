@@ -236,16 +236,16 @@ $(async () => {
         const translations = lastResults.map(r => r.translation).filter(t => t !== null) as string[];
         const source_lang = String($('#src-lang').val());
         const target_lang = String($('#tgt-lang').val());
-        const verification_content = String($('#vc-content').val() ?? '').trim();
+        const verification_rule = String($('#vc-content').val() ?? '').trim();
 
-        if (!source_text || translations.length === 0 || !verification_content) {
+        if (!source_text || translations.length === 0 || !verification_rule) {
             $('#submit-status').html('<span class="msg-err">Please fill all required fields and translate first</span>');
             return;
         }
         try {
             await Promise.all(translations.map(translation => createSubmission({
                 source_text, translation, source_lang, target_lang,
-                verification_content,
+                verification_rule,
             })));
             $('#submit-status').html('<span class="msg-ok">✓ Submitted!</span>');
             $('#src-text, #vc-content').val('');
@@ -308,7 +308,7 @@ function renderMySug(s: Submission): string {
         <div class="sug-mini-text">${escHtml(srcPreview)}</div>
         <div class="sug-mini-tr">${escHtml(s.translation)}</div>
         <div class="sug-mini-footer">
-          <code class="sug-mini-vc">${escHtml(s.verification_content)}</code>
+          <code class="sug-mini-vc">${escHtml(s.verification_rule)}</code>
           ${scoreBadge(s.points)}
         </div>
     </div>`;

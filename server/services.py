@@ -1,89 +1,75 @@
-from deep_translator import DeeplTranslator, GoogleTranslator, LibreTranslator
+from deep_translator import DeeplTranslator, GoogleTranslator
 import httpx
 from .utils import get_config
 from openrouter import OpenRouter
 
 
-def _call_google(text: str, src: str, tgt: str) -> dict:
-    try:
-        res = GoogleTranslator(source=src, target=tgt).translate(text)
-        return {"api": "Google", "translation": res, "error": None}
-    except Exception as exc:
-        return {"api": "Google", "translation": None, "error": str(exc)}
+def translate_google(text: str, src: str, tgt: str) -> str:
+    return GoogleTranslator(source=src, target=tgt).translate(text)
 
 
-def _call_deepl(text: str, src: str, tgt: str) -> dict:
+def translate_deepl(text: str, src: str, tgt: str) -> str:
     DEEPL_API_KEY = get_config("DEEPL_API_KEY", "")
-    try:
-        if not DEEPL_API_KEY:
-            return {
-                "api": "DeepL",
-                "translation": None,
-                "error": "No DeepL API key configured",
-            }
-        res = DeeplTranslator(
-            api_key=DEEPL_API_KEY, source=src, target=tgt, use_free_api=True
-        ).translate(text)
-        return {"api": "DeepL", "translation": res, "error": None}
-    except Exception as exc:
-        return {"api": "DeepL", "translation": None, "error": str(exc)}
+    if not DEEPL_API_KEY:
+        raise ValueError("No DeepL API key configured")
+    return DeeplTranslator(
+        api_key=DEEPL_API_KEY, source=src, target=tgt, use_free_api=True
+    ).translate(text)
 
 
-def _call_libre(text: str, src: str, tgt: str) -> dict:
-    LIBRE_API_KEY = get_config("LIBRE_API_KEY", "")
-    try:
-        kwargs = {"source": src, "target": tgt}
-        if LIBRE_API_KEY:
-            kwargs["api_key"] = LIBRE_API_KEY
-        else:
-            kwargs["api_key"] = "none"
-            kwargs["use_free_api"] = True
-        if libre_url := get_config("LIBRE_URL", ""):
-            kwargs["custom_url"] = libre_url
-
-        res = LibreTranslator(**kwargs).translate(text)
-        return {"api": "LibreTranslate", "translation": res, "error": None}
-    except Exception as exc:
-        return {"api": "LibreTranslate", "translation": None, "error": str(exc)}
+def translate_mymemory(text: str, src: str, tgt: str) -> str:
+    resp = httpx.get(
+        "https://api.mymemory.translated.net/get",
+        params={"q": text, "langpair": f"{src}|{tgt}"},
+        timeout=10,
+    )
+    data = resp.json()
+    if data.get("responseStatus") == 200:
+        return data["responseData"]["translatedText"]
+    raise Exception(data.get("responseDetails", "API returned an error"))
 
 
-def _call_mymemory(text: str, src: str, tgt: str) -> dict:
-    try:
-        resp = httpx.get(
-            "https://api.mymemory.translated.net/get",
-            params={"q": text, "langpair": f"{src}|{tgt}"},
-            timeout=10,
-        )
-        data = resp.json()
-        if data.get("responseStatus") == 200:
-            return {
-                "api": "MyMemory",
-                "translation": data["responseData"]["translatedText"],
-                "error": None,
-            }
-        return {
-            "api": "MyMemory",
-            "translation": None,
-            "error": "API returned an error",
-        }
-    except Exception as exc:
-        return {"api": "MyMemory", "translation": None, "error": str(exc)}
-
-
-def _call_llm(prompt: str) -> bool:
+def call_llm(prompt: str, model: str = "google/gemini-2.5-flash-lite") -> str:
     # use openrouter api
     client = OpenRouter(api_key=get_config("OPENROUTER_API_KEY", ""))
-    response = client.chat.completions.create(
-        model="google/gemini-2.5-flash-lite",
+    response = client.chat.send(
+        model=model,
         messages=[
             {
                 "role": "user",
-                "content": prompt + "\n\nOutput only pass or fail and nothing else",
+                "content": prompt,
             }
         ],
     )
-    text = response.choices[0].message.content.lower()
+    return response.choices[0].message.content.lower()
+
+
+def verify_llm(translation: str, rule: str) -> bool:
+    text = call_llm(
+        f"Criterion: {rule}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else.",
+        model="google/gemini-2.5-flash-lite",
+    )
     if "pass" in text and "fail" in text:
         raise ValueError(f"Invalid LLM response: {text}")
     else:
         return "pass" in text
+
+
+def translate_gemini2_5flash(text: str, src: str, tgt: str) -> str:
+    prompt = f"Translate the following text from {src} to {tgt}. Output only the translation and nothing else.:\n{text}"
+    return call_llm(prompt, model="google/gemini-2.5-flash-lite")
+
+
+def translate_gemma4(text: str, src: str, tgt: str) -> str:
+    prompt = f"Translate the following text from {src} to {tgt}. Output only the translation and nothing else.:\n{text}"
+    return call_llm(prompt, model="google/gemma-4-31b-it")
+
+
+def translate_qwen3p6(text: str, src: str, tgt: str) -> str:
+    prompt = f"Translate the following text from {src} to {tgt}. Output only the translation and nothing else.:\n{text}"
+    return call_llm(prompt, model="qwen/qwen3.6-plus")
+
+
+def translate_gpt4p1nano(text: str, src: str, tgt: str) -> str:
+    prompt = f"Translate the following text from {src} to {tgt}. Output only the translation and nothing else.:\n{text}"
+    return call_llm(prompt, model="openai/gpt-4.1-nano")

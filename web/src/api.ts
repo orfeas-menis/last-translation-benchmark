@@ -21,7 +21,7 @@ export interface Submission {
     translation: string;
     source_lang: string;
     target_lang: string;
-    verification_content: string;
+    verification_rule: string;
     points: number;
     created_at: string;
 }
@@ -82,15 +82,15 @@ export function translate(text: string, source_lang: string, target_lang: string
     return apiCall<{
         results: Array<{ api: string; translation: string | null; error: string | null }>;
         quota_remaining: number;
-    }>('POST', '/api/translate', { text, source_lang, target_lang });
+    }>('POST', '/api/translate-submission', { text, source_lang, target_lang });
 }
 
 export function verify(
     translations: string[],
-    verification_content: string,
+    verification_rule: string,
 ) {
     return apiCall<{ results: boolean[]; detail: string }>(
-        'POST', '/api/verify', { translations, verification_content }
+        'POST', '/api/verify-submission', { translations, verification_rule }
     );
 }
 
@@ -103,7 +103,7 @@ export function createSubmission(data: {
     translation: string;
     source_lang: string;
     target_lang: string;
-    verification_content: string;
+    verification_rule: string;
 }) {
     return apiCall<{ ok: boolean }>('POST', '/api/submissions', data);
 }
