@@ -61,7 +61,6 @@ def _load_data() -> None:
                     "password_hash": hashlib.sha256(password.encode()).hexdigest(),
                     "role": role,
                     "quota_used": 0,
-                    "quota_date": "",
                 }
             )
         _save_data()
@@ -183,8 +182,7 @@ def logout(user=Depends(_auth), authorization: Optional[str] = Header(None)):
 
 @app.get("/api/me")
 def me(user=Depends(_auth)):
-    today = date.today().isoformat()
-    quota_used = user["quota_used"] if user["quota_date"] == today else 0
+    quota_used = user["quota_used"]
     total_points = sum(
         s["points"]
         for s in _db["submissions"]
@@ -212,10 +210,9 @@ def translate_submission(req: TranslateReq, user=Depends(_auth)):
             status_code=403, detail="Only contributors can use translation quota"
         )
 
-    today = date.today().isoformat()
-    quota_used = user["quota_used"] if user["quota_date"] == today else 0
+    quota_used = user["quota_used"]
     if quota_used >= CONTRIBUTOR_QUOTA:
-        raise HTTPException(status_code=429, detail="Daily quota exceeded")
+        raise HTTPException(status_code=429, detail="Quota exceeded")
 
     async def _run_translate(name: str, func, *args):
         try:
@@ -269,7 +266,6 @@ def translate_submission(req: TranslateReq, user=Depends(_auth)):
     results = asyncio.run(_run_all())
 
     user["quota_used"] = quota_used + 1
-    user["quota_date"] = today
     _save_data()
     return {"results": results, "quota_remaining": CONTRIBUTOR_QUOTA - quota_used - 1}
 
@@ -278,7 +274,7 @@ def translate_submission(req: TranslateReq, user=Depends(_auth)):
 def verify_submission(req: VerifyReq, user=Depends(_auth)):
     content_stripped = req.verification_rule.strip()
 
-    # TODO: verify daily quota here as well
+    # TODO: verify quota here as well
 
     if content_stripped.startswith("#!regex"):
         lines = content_stripped.split("\n", 1)
