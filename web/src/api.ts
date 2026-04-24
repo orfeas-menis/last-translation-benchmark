@@ -17,6 +17,13 @@ export interface TranslationEntry {
     verified: boolean | null;
 }
 
+export interface Comment {
+    author: string;
+    role: 'reviewer' | 'contributor';
+    text: string;
+    timestamp: string;
+}
+
 export interface Submission {
     id: number;
     user_id: number;
@@ -29,6 +36,7 @@ export interface Submission {
     points: number;
     reviewer_comment: string;
     created_at: string;
+    comments?: Comment[];
 }
 
 // ---------- Token helpers ----------
@@ -98,6 +106,10 @@ export function createSubmission(data: {
 
 export function scoreSubmission(id: number, action: 'reject' | 'accept' | 'comment', comment?: string) {
     return apiCall<{ ok: boolean }>('POST', `/api/submissions/${id}/score`, { action, comment });
+}
+
+export function addComment(id: number, comment: string) {
+    return apiCall<{ ok: boolean }>('POST', `/api/submissions/${id}/comment`, { comment });
 }
 
 // ---------- UI helpers ----------
