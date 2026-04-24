@@ -7,14 +7,18 @@ $(async () => {
     if (token) {
         try {
             const user = await getMe();
-            redirectByRole(user.role);
+            redirectByRoles(user.roles);
         } catch {
             $('#auth-error').show();
         }
     }
 });
 
-function redirectByRole(role: string): void {
+function redirectByRoles(roles: string[]): void {
     const search = window.location.search;
-    window.location.href = (role === 'reviewer' ? '/reviewer.html' : '/contributor.html') + search;
+    if (roles.includes('reviewer') && !roles.includes('contributor')) {
+        window.location.href = '/reviewer.html' + search;
+    } else {
+        window.location.href = '/contributor.html' + search;
+    }
 }

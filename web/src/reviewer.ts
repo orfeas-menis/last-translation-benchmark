@@ -2,7 +2,7 @@ import './style.css';
 import $ from 'jquery';
 import {
     getToken, getMe,
-    getSubmissions, scoreSubmission,
+    getSubmissions, scoreSubmission, renderRoleSwitcher,
     Submission,
 } from './api';
 
@@ -14,8 +14,15 @@ $(async () => {
 
     try {
         const user = await getMe();
-        if (user.role !== 'reviewer') { window.location.href = '/contributor.html'; return; }
-        $('#sen-info').text(`${user.username} · Reviewer Reviewer`);
+        renderRoleSwitcher(user.roles);
+        if (!user.roles.includes('reviewer')) {
+            document.body.innerHTML = `<div style="padding: 2rem; text-align: center; font-family: sans-serif;">
+                <h2>Access Denied</h2>
+                <p>You have the following roles: ${user.roles.join(', ')}, which does not match "reviewer" which you're trying to access.</p>
+            </div>`;
+            return;
+        }
+        $('#sen-info').text(`${user.username} · Reviewer`);
     } catch {
         window.location.href = '/';
         return;

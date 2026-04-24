@@ -58,17 +58,20 @@ def _load_data() -> None:
                     "id": uid,
                     "username": username,
                     "magic_token": secrets.token_urlsafe(24),
-                    "role": role,
+                    "roles": [role],
                     "quota_used": 0,
                 }
             )
         _save_data()
 
-    # Migrate existing users that don't have a magic_token yet
     changed = False
     for user in _db["users"]:
         if not user.get("magic_token"):
             user["magic_token"] = secrets.token_urlsafe(24)
+            changed = True
+        if "role" in user:
+            user["roles"] = [user["role"]]
+            del user["role"]
             changed = True
     if changed:
         _save_data()
@@ -176,7 +179,7 @@ def me(user=Depends(_auth)):
     )
     return {
         "username": user["username"],
-        "role": user["role"],
+        "roles": user.get("roles", []),
         "quota_used": quota_used,
         "quota_remaining": max(0, CONTRIBUTOR_QUOTA - quota_used),
         "contributor_quota": CONTRIBUTOR_QUOTA,
@@ -191,7 +194,7 @@ def me(user=Depends(_auth)):
 
 @app.post("/api/translate-submission")
 def translate_submission(req: TranslateReq, user=Depends(_auth)):
-    if user["role"] != "contributor":
+    if "contributor" not in user.get("roles", []):
         raise HTTPException(
             status_code=403, detail="Only contributors can use translation quota"
         )
@@ -304,7 +307,7 @@ def verify_submission(req: VerifyReq, user=Depends(_auth)):
 
 @app.post("/api/submissions")
 def create_submission(req: SubmissionReq, user=Depends(_auth)):
-    if user["role"] != "contributor":
+    if "contributor" not in user.get("roles", []):
         raise HTTPException(
             status_code=403, detail="Only contributors can submit submissions"
         )
@@ -330,7 +333,7 @@ def create_submission(req: SubmissionReq, user=Depends(_auth)):
 
 @app.get("/api/submissions")
 def get_submissions(user=Depends(_auth)):
-    if user["role"] == "reviewer":
+    if "reviewer" in user.get("roles", []):
         rows = sorted(
             _db["submissions"],
             key=lambda s: (s["points"], s["created_at"]),
@@ -346,7 +349,7 @@ def get_submissions(user=Depends(_auth)):
 
 @app.post("/api/submissions/{sid}/score")
 def score_submission(sid: int, req: ScoreReq, user=Depends(_auth)):
-    if user["role"] != "reviewer":
+    if "reviewer" not in user.get("roles", []):
         raise HTTPException(
             status_code=403, detail="Only reviewer users can score submissions"
         )
