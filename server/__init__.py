@@ -160,6 +160,11 @@ class ScoreReq(BaseModel):
     action: str  # "reject" | "accept" | "comment"
     comment: Optional[str] = None
 
+class ProfileReq(BaseModel):
+    name: str
+    affiliation: str
+    email: str
+    credit_consent: bool
 
 class CommentReq(BaseModel):
     comment: str
@@ -188,7 +193,41 @@ def me(user=Depends(_auth)):
         "quota_remaining": max(0, CONTRIBUTOR_QUOTA - quota_used),
         "contributor_quota": CONTRIBUTOR_QUOTA,
         "total_points": total_points,
+        "name": user.get("name", ""),
+        "affiliation": user.get("affiliation", ""),
+        "email": user.get("email", ""),
+        "credit_consent": user.get("credit_consent", False),
     }
+
+
+@app.put("/api/profile")
+def update_profile(req: ProfileReq, user=Depends(_auth)):
+    user.update({
+        "name": req.name,
+        "affiliation": req.affiliation,
+        "email": req.email,
+        "credit_consent": req.credit_consent,
+    })
+    _save_data()
+    return {"ok": True}
+
+
+@app.get("/api/admin/users")
+def admin_users(user=Depends(_auth)):
+    if "admin" not in user.get("roles", []):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return [
+        {
+            "id": u["id"],
+            "username": u["username"],
+            "roles": u.get("roles", []),
+            "name": u.get("name", ""),
+            "affiliation": u.get("affiliation", ""),
+            "email": u.get("email", ""),
+            "credit_consent": u.get("credit_consent", False),
+        }
+        for u in _db["users"]
+    ]
 
 
 # ---------------------------------------------------------------------------
