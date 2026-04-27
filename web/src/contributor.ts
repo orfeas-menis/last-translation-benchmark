@@ -5,7 +5,8 @@ import {
     translate, verify, createSubmission, updateSubmission, getSubmissions, addComment, renderRoleSwitcher,
     User, Submission, Rule,
 } from './api';
-import { esc as escHtml, fmtDate, scoreBadge, accessDenied, renderCommentThread } from './utils';
+
+import { esc as escHtml, fmtDate, scoreBadge, accessDenied, renderCommentThread, setupInstructions } from './utils';
 
 let currentUser: User | null = null;
 
@@ -19,7 +20,9 @@ let rules: Rule[] = [{ type: 'llm', value: '' }];
 
 
 
+
 $(async () => {
+    setupInstructions('contributor');
     if (!getToken()) { window.location.href = 'index.html'; return; }
 
     let LANGUAGES: string[] = [];
@@ -322,7 +325,7 @@ function renderRules() {
                     </select>
                     <button class="rule-remove btn btn-secondary" style="padding: 4px 10px; font-size: 0.85em; width: fit-content;">- Remove Rule</button>
                 </div>
-                <textarea class="rule-value" placeholder="${escHtml(placeholder)}" style="flex: 1; height: 40px; padding: 7px 10px; border: 1px solid #d1d5db; min-height: 30px; border-radius: 5px; font-size: 0.85em; resize: vertical;">${escHtml(rule.value)}</textarea>
+                <textarea class="rule-value" placeholder="${escHtml(placeholder)}" style="flex: 1; height: 40px; padding: 7px 10px; border: 1px solid #d1d5db; min-height: 60px; border-radius: 5px; font-size: 0.85em; resize: vertical;">${escHtml(rule.value)}</textarea>
             </div>
         `);
         $container.append($row);

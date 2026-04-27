@@ -67,9 +67,11 @@ module.exports = (env, argv) => ({
       chunks: ['admin'],
       hash: true,
     }),
+
     new CopyWebpackPlugin({
       patterns: [
         { from: 'src/favicon.svg', to: '.' },
+        { from: 'src/instructions.html', to: '.' },
       ],
     }),
   ],

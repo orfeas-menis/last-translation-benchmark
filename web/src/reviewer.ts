@@ -5,12 +5,14 @@ import {
     getSubmissions, scoreSubmission, addComment, renderRoleSwitcher,
     Submission,
 } from './api';
-import { esc as escHtml, fmtDate, scoreBadge, accessDenied, renderCommentThread } from './utils';
+
+import { esc as escHtml, fmtDate, scoreBadge, accessDenied, renderCommentThread, setupInstructions } from './utils';
 
 let allSugs: Submission[] = [];
 let curFilter = 'pending';
 
 $(async () => {
+    setupInstructions('reviewer');
     if (!getToken()) { window.location.href = 'index.html'; return; }
 
     try {

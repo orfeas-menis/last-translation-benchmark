@@ -1,8 +1,11 @@
 import './style.css';
 import $ from 'jquery';
+
 import { getToken, getMe } from './api';
+import { setupInstructions } from './utils';
 
 $(async () => {
+    setupInstructions('all');
     const token = getToken();
     if (token) {
         try {

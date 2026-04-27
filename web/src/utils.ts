@@ -32,3 +32,33 @@ export function accessDenied(roles: string[], target: string): void {
         <p>You have roles: ${roles.join(', ')}. Need: "${target}".</p>
     </div>`;
 }
+
+export async function setupInstructions(mode: 'all' | 'contributor' | 'reviewer') {
+    const btn = $('#show-instructions-btn');
+    const box = $('#instructions-box');
+    if (!btn.length || !box.length) return;
+
+    btn.on('click', async () => {
+        if (box.is(':visible')) {
+            box.slideUp();
+            return;
+        }
+
+        if (!box.data('loaded')) {
+            const html = await fetch('instructions.html').then(r => r.text());
+            const bodyMatch = html.match(/<body>([\s\S]*?)<\/body>/);
+            const body = bodyMatch ? bodyMatch[1] : html;
+            
+            let filtered = body;
+            const splitKey = '<h2>Instructions for Reviewers</h2>';
+            if (mode === 'contributor') {
+                filtered = body.split(splitKey)[0];
+            } else if (mode === 'reviewer') {
+                filtered = splitKey + body.split(splitKey)[1];
+            }
+            
+            box.html(filtered).data('loaded', true);
+        }
+        box.slideDown();
+    });
+}
