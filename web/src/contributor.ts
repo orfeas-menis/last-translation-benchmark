@@ -5,6 +5,7 @@ import {
     translate, verify, createSubmission, updateSubmission, getSubmissions, addComment, renderRoleSwitcher,
     User, Submission, Rule,
 } from './api';
+import { esc as escHtml, fmtDate, scoreBadge, accessDenied, renderCommentThread } from './utils';
 
 let currentUser: User | null = null;
 
@@ -163,10 +164,7 @@ $(async () => {
         currentUser = await getMe();
         renderRoleSwitcher(currentUser.roles);
         if (!currentUser.roles.includes('contributor')) {
-            document.body.innerHTML = `<div style="padding: 2rem; text-align: center;">
-                <h2>Access Denied</h2>
-                <p>You have the following roles: ${currentUser.roles.join(', ')}, which does not match "contributor" which you're trying to access.</p>
-            </div>`;
+            accessDenied(currentUser.roles, 'contributor');
             return;
         }
     } catch {
@@ -497,14 +495,7 @@ function renderMySug(s: Submission): string {
     const trPreview = firstTr.length > 60 ? firstTr.slice(0, 60) + '…' : firstTr;
 
     const comments = s.comments ?? [];
-    const threadHtml = comments.length
-        ? `<div class="comment-thread comment-thread-mini">${comments.map(c =>
-            `<div class="comment-msg comment-msg-${c.role}">
-                <span class="comment-author">${escHtml(c.author)}</span>
-                <span class="comment-ts">${escHtml(c.timestamp)}</span>
-                <div class="comment-body">${escHtml(c.text)}</div>
-            </div>`).join('')}</div>`
-        : '';
+    const threadHtml = renderCommentThread(comments, 'contributor');
 
     const replyHtml = comments.length
         ? `<div class="comment-reply-row">
@@ -533,12 +524,3 @@ function renderMySug(s: Submission): string {
     </div>`;
 }
 
-function escHtml(str: string): string { return $('<div>').text(str).html(); }
-
-function fmtDate(dt: string): string { return (dt ?? '').replace('T', ' ').slice(0, 16); }
-
-function scoreBadge(p: number): string {
-    if (p < 0) return '<span class="badge badge-pending">Pending</span>';
-    const labels = ['✗ Rejected', '✓ Accepted'];
-    return `<span class="badge badge-score-${p === 1 ? 3 : 0}">${labels[p] ?? String(p)}</span>`;
-}

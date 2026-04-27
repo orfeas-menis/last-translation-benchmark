@@ -5,14 +5,9 @@ import {
     rotateAdminToken, renderRoleSwitcher, AdminUser,
 } from './api';
 
-function esc(str: string): string { return $('<div>').text(str).html(); }
+import { esc, showToast, accessDenied } from './utils';
 
 let allUsers: AdminUser[] = [];
-
-function showToast(msg: string): void {
-    const t = $('#toast').text(msg).addClass('show');
-    setTimeout(() => t.removeClass('show'), 2000);
-}
 
 function renderTable(users: AdminUser[]): void {
     if (!users.length) {
@@ -98,7 +93,7 @@ $(async () => {
     try {
         const user = await getMe();
         renderRoleSwitcher(user.roles);
-        if (!user.roles.includes('admin')) { $('body').html('Access Denied'); return; }
+        if (!user.roles.includes('admin')) { accessDenied(user.roles, 'admin'); return; }
         $('#admin-info').text(`${user.username} (Admin)`);
         allUsers = await getAdminUsers();
         applyFilter();
