@@ -2,7 +2,6 @@ import argparse
 import uvicorn
 
 
-import uvicorn
 
 args = argparse.ArgumentParser()
 args.add_argument("--port", type=int, default=8000)
