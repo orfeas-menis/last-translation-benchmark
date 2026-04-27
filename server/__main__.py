@@ -2,6 +2,8 @@ import argparse
 import uvicorn
 
 
+import uvicorn
+
 args = argparse.ArgumentParser()
 args.add_argument("--port", type=int, default=8000)
 args.add_argument("--host", type=str, default="127.0.0.1")
