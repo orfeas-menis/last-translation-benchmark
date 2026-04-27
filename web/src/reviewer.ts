@@ -10,7 +10,7 @@ let allSugs: Submission[] = [];
 let curFilter = 'pending';
 
 $(async () => {
-    if (!getToken()) { window.location.href = '/'; return; }
+    if (!getToken()) { window.location.href = 'index.html'; return; }
 
     try {
         const user = await getMe();
@@ -24,7 +24,7 @@ $(async () => {
         }
         $('#sen-info').text(`${user.username} · Reviewer`);
     } catch {
-        window.location.href = '/';
+        window.location.href = 'index.html';
         return;
     }
 

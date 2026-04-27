@@ -3,7 +3,7 @@ import $ from 'jquery';
 import { getToken, getMe, updateProfile } from './api';
 
 $(async () => {
-    if (!getToken()) { window.location.href = '/'; return; }
+    if (!getToken()) { window.location.href = 'index.html'; return; }
 
     try {
         const user = await getMe();
@@ -13,7 +13,7 @@ $(async () => {
         if (user.email) $('#email').val(user.email);
         if (user.credit_consent) $('#credit-consent').prop('checked', true);
     } catch {
-        window.location.href = '/';
+        window.location.href = 'index.html';
         return;
     }
 
@@ -33,7 +33,7 @@ $(async () => {
             await updateProfile({ name, affiliation, email, credit_consent });
 
             // Redirect back to main page which will route appropriately
-            window.location.href = '/' + window.location.search;
+            window.location.href = 'index.html' + window.location.search;
         } catch (err) {
             $('#status-msg').removeClass('msg-ok').addClass('msg-err').text(String(err));
             $('#save-btn').prop('disabled', false);

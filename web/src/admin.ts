@@ -30,7 +30,7 @@ function renderTable(users: AdminUser[]): void {
             <td style="text-align:center;color:#64748b">${u.quota_used}</td>
             <td>
               <div class="action-btns">
-                <button class="act-btn act-copy" data-uid="${u.id}" title="Copy login link">🔗</button>
+                <a class="act-btn act-copy" data-uid="${u.id}" title="Login link" href="index.html?user=${encodeURIComponent(u.username)}&token=${encodeURIComponent(u.magic_token)}">🔗</a>
                 <button class="act-btn act-rotate" data-uid="${u.id}" title="Rotate magic token">🔄</button>
                 <button class="act-btn act-delete" data-uid="${u.id}" title="Remove user">✕</button>
               </div>
@@ -42,12 +42,6 @@ function renderTable(users: AdminUser[]): void {
         <thead><tr><th>Username</th><th>Roles</th><th>Name</th><th>Affiliation</th><th>Email</th><th>Quota</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`);
-
-    $('.act-copy').on('click', function () {
-        const u = allUsers.find(x => x.id === $(this).data('uid'))!;
-        const link = `${location.origin}/?user=${encodeURIComponent(u.username)}&token=${encodeURIComponent(u.magic_token)}`;
-        navigator.clipboard.writeText(link).then(() => showToast('Link copied'));
-    });
 
     $('.act-rotate').on('click', async function () {
         const uid = $(this).data('uid');
@@ -100,7 +94,7 @@ async function handleAddUser(): Promise<void> {
 
 $(async () => {
     const token = getToken();
-    if (!token) { window.location.href = '/'; return; }
+    if (!token) { window.location.href = 'index.html'; return; }
     try {
         const user = await getMe();
         renderRoleSwitcher(user.roles);
@@ -108,7 +102,7 @@ $(async () => {
         $('#admin-info').text(`${user.username} (Admin)`);
         allUsers = await getAdminUsers();
         applyFilter();
-    } catch { window.location.href = '/'; }
+    } catch { window.location.href = 'index.html'; }
 
     $('#filter-input').on('input', applyFilter);
     $('#role-filter').on('change', applyFilter);

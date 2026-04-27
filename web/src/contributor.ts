@@ -152,7 +152,7 @@ const LANGUAGES = [
 ];
 
 $(async () => {
-    if (!getToken()) { window.location.href = '/'; return; }
+    if (!getToken()) { window.location.href = 'index.html'; return; }
 
     const langOptions = LANGUAGES.map(l => `<option value="${l.code}">${l.name}</option>`).join('');
     $('#src-langs').html(langOptions);
@@ -169,7 +169,7 @@ $(async () => {
             return;
         }
     } catch {
-        window.location.href = '/';
+        window.location.href = 'index.html';
         return;
     }
 

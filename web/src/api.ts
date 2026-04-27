@@ -75,14 +75,14 @@ function apiCall<T>(method: string, url: string, data?: object): Promise<T> {
 // ---------- API calls ----------
 
 export function getMe() {
-    return apiCall<User>('GET', '/api/me');
+    return apiCall<User>('GET', 'api/me');
 }
 
 export function translate(text: string, source_lang: string, target_lang: string) {
     return apiCall<{
         results: Array<{ api: string; translation: string | null; error: string | null }>;
         quota_remaining: number;
-    }>('POST', '/api/translate-submission', { text, source_lang, target_lang });
+    }>('POST', 'api/translate-submission', { text, source_lang, target_lang });
 }
 
 export function verify(
@@ -90,12 +90,12 @@ export function verify(
     verification_rule: string,
 ) {
     return apiCall<{ results: boolean[]; detail: string }>(
-        'POST', '/api/verify-submission', { translations, verification_rule }
+        'POST', 'api/verify-submission', { translations, verification_rule }
     );
 }
 
 export function getSubmissions() {
-    return apiCall<Submission[]>('GET', '/api/submissions');
+    return apiCall<Submission[]>('GET', 'api/submissions');
 }
 
 export function createSubmission(data: {
@@ -105,7 +105,7 @@ export function createSubmission(data: {
     verification_rule: string;
     translations: Array<{ api: string; translation: string; verified: boolean | null }>;
 }) {
-    return apiCall<{ ok: boolean }>('POST', '/api/submissions', data);
+    return apiCall<{ ok: boolean }>('POST', 'api/submissions', data);
 }
 
 export function updateSubmission(id: number, data: {
@@ -115,11 +115,11 @@ export function updateSubmission(id: number, data: {
     verification_rule: string;
     translations: Array<{ api: string; translation: string; verified: boolean | null }>;
 }) {
-    return apiCall<{ ok: boolean }>('PUT', `/api/submissions/${id}`, data);
+    return apiCall<{ ok: boolean }>('PUT', `api/submissions/${id}`, data);
 }
 
 export function scoreSubmission(id: number, action: 'reject' | 'accept' | 'comment', comment?: string) {
-    return apiCall<{ ok: boolean }>('POST', `/api/submissions/${id}/score`, { action, comment });
+    return apiCall<{ ok: boolean }>('POST', `api/submissions/${id}/score`, { action, comment });
 }
 
 export function updateProfile(data: {
@@ -128,7 +128,7 @@ export function updateProfile(data: {
     email: string;
     credit_consent: boolean;
 }) {
-    return apiCall<{ ok: boolean }>('PUT', '/api/profile', data);
+    return apiCall<{ ok: boolean }>('PUT', 'api/profile', data);
 }
 
 export interface AdminUser {
@@ -144,23 +144,23 @@ export interface AdminUser {
 }
 
 export function getAdminUsers() {
-    return apiCall<AdminUser[]>('GET', '/api/admin/users');
+    return apiCall<AdminUser[]>('GET', 'api/admin/users');
 }
 
 export function createAdminUser(username: string, roles: string[]) {
-    return apiCall<AdminUser>('POST', '/api/admin/users', { username, roles });
+    return apiCall<AdminUser>('POST', 'api/admin/users', { username, roles });
 }
 
 export function deleteAdminUser(uid: number) {
-    return apiCall<{ ok: boolean }>('DELETE', `/api/admin/users/${uid}`);
+    return apiCall<{ ok: boolean }>('DELETE', `api/admin/users/${uid}`);
 }
 
 export function rotateAdminToken(uid: number) {
-    return apiCall<{ magic_token: string }>('POST', `/api/admin/users/${uid}/rotate-token`);
+    return apiCall<{ magic_token: string }>('POST', `api/admin/users/${uid}/rotate-token`);
 }
 
 export function addComment(id: number, comment: string) {
-    return apiCall<{ ok: boolean }>('POST', `/api/submissions/${id}/comment`, { comment });
+    return apiCall<{ ok: boolean }>('POST', `api/submissions/${id}/comment`, { comment });
 }
 
 // ---------- UI helpers ----------
@@ -179,7 +179,7 @@ export function renderRoleSwitcher(roles: string[]): void {
         btn.className = 'btn btn-secondary';
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
-        btn.onclick = () => window.location.href = '/contributor.html' + search;
+        btn.onclick = () => window.location.href = 'contributor.html' + search;
         container.appendChild(btn);
     }
     if (roles.includes('reviewer')) {
@@ -188,7 +188,7 @@ export function renderRoleSwitcher(roles: string[]): void {
         btn.className = 'btn btn-secondary';
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
-        btn.onclick = () => window.location.href = '/reviewer.html' + search;
+        btn.onclick = () => window.location.href = 'reviewer.html' + search;
         container.appendChild(btn);
     }
     if (roles.includes('admin')) {
@@ -197,7 +197,7 @@ export function renderRoleSwitcher(roles: string[]): void {
         btn.className = 'btn btn-secondary';
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
-        btn.onclick = () => window.location.href = '/admin.html' + search;
+        btn.onclick = () => window.location.href = 'admin.html' + search;
         container.appendChild(btn);
     }
     const profileBtn = document.createElement('button');
@@ -205,7 +205,7 @@ export function renderRoleSwitcher(roles: string[]): void {
     profileBtn.className = 'btn btn-secondary';
     profileBtn.style.padding = '3px 8px';
     profileBtn.style.fontSize = '0.8em';
-    profileBtn.onclick = () => window.location.href = '/profile.html' + search;
+    profileBtn.onclick = () => window.location.href = 'profile.html' + search;
     container.appendChild(profileBtn);
 
     const headerActions = document.querySelector('header > div');
