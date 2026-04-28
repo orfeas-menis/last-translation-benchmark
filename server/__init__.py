@@ -410,7 +410,6 @@ def verify_submission(req: VerifyReq, user=Depends(_auth)):
 
     async def _verify_single(translation: str) -> bool:
         for rule in req.verification_rules:
-            print(rule)
             if rule.type == "contains":
                 if rule.value not in translation:
                     return False
