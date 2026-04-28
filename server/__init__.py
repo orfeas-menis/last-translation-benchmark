@@ -327,6 +327,21 @@ def translate_submission(req: TranslateReq, user=Depends(_auth)):
             status_code=403, detail="Only contributors can use translation quota"
         )
 
+    if not req.text or not req.text.strip():
+        raise HTTPException(status_code=400, detail="Enter source text first")
+
+    if (
+        not req.source_lang
+        or not req.source_lang.strip()
+        or not req.target_lang
+        or not req.target_lang.strip()
+    ):
+        raise HTTPException(status_code=400, detail="Both languages must be specified")
+    if len(req.source_lang) > 50 or len(req.target_lang) > 50:
+        raise HTTPException(
+            status_code=400, detail="Language has to be at most 50 characters long"
+        )
+
     source_name = req.source_lang
     target_name = req.target_lang
     source_code = NAME_TO_CODE.get(source_name.lower())
@@ -443,6 +458,17 @@ def create_submission(req: SubmissionReq, user=Depends(_auth)):
         raise HTTPException(
             status_code=403, detail="Only contributors can submit submissions"
         )
+
+    if (
+        not req.source_lang
+        or not req.source_lang.strip()
+        or not req.target_lang
+        or not req.target_lang.strip()
+        or not req.source_text
+        or not req.translations
+        or not req.verification_rules
+    ):
+        raise HTTPException(status_code=400, detail="Field missing")
 
     sid = _next_id(_db["submissions"])
     _db["submissions"].append(

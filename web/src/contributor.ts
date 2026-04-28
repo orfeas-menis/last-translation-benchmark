@@ -87,7 +87,6 @@ $(async () => {
     // Auto-translate
     $('#tr-btn').on('click', async () => {
         const text = String($('#src-text').val() ?? '').trim();
-        if (!text) { alert('Enter source text first.'); return; }
         $('#tr-btn').prop('disabled', true);
         $('#tr-status').text('Translating…');
         try {
@@ -179,13 +178,20 @@ $(async () => {
         const source_lang = String($('#src-lang').val());
         const target_lang = String($('#tgt-lang').val());
 
-        if (!source_text || translations.length === 0 || rules.length === 0) {
+        if (translations.length === 0 || rules.length === 0) {
             $('#submit-status').html('<span class="msg-err">Please fill all required fields, translate and verify translations first</span>');
             return;
         }
         if (rules.some(r => !r.value.trim())) {
             $('#submit-status').html('<span class="msg-err">All rules must have content</span>');
             return;
+        }
+
+        const allPassed = translations.length > 0 && translations.every(t => t.verified === true);
+        if (allPassed) {
+            if (!confirm('All models passed the verification. This should be allowed only in special cases. Are you sure you want to submit?')) {
+                return;
+            }
         }
 
         try {
