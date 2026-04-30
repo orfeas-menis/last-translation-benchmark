@@ -1,5 +1,4 @@
 <?php
-
 $target_base = 'https://quest.ms.mff.cuni.cz/ltb/';
 
 // Strip local /ltb/ prefix if present to prevent upstream /ltb/ltb/ 404s

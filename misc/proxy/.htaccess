@@ -1,3 +1,4 @@
+Options +FollowSymLinks -MultiViews
 DirectoryIndex proxy.php
 
 RewriteEngine On
@@ -14,3 +15,5 @@ RewriteRule ^ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule ^(.*)$ proxy.php [QSA,L]
+
+CGIPassAuth On
