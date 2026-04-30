@@ -41,6 +41,8 @@ from .services import (
 )
 from .utils import CONTRIBUTOR_QUOTA_DEFAULT
 
+NAME_TO_CODE = {x["name"].lower(): x["code"] for x in LANGUAGES}
+
 router = APIRouter()
 
 # --- Users ---
@@ -172,8 +174,6 @@ async def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_u
 
 
 # --- Translate ---
-
-NAME_TO_CODE = {x["name"].lower(): x["code"] for x in LANGUAGES}
 
 
 @router.post("/api/translate-submission")
