@@ -15,8 +15,12 @@ def _open_db():
         os.makedirs(db_dir, exist_ok=True)
     return aiosqlite.connect(DB_PATH)
 
+_TABLES = {"users", "submissions"}
+
 
 async def _next_id(table: str) -> int:
+    if table not in _TABLES:
+        raise ValueError(f"Invalid table: {table}")
     async with _open_db() as db:
         async with db.execute(f"SELECT MAX(id) FROM {table}") as cur:  # noqa: S608
             row = await cur.fetchone()
@@ -68,11 +72,14 @@ async def next_user_id() -> int:
 
 async def get_submissions(user_id: int | None = None) -> list[dict]:
     async with _open_db() as db:
+        if user_id is not None:
+            async with db.execute(
+                "SELECT data FROM submissions WHERE json_extract(data, '$.user_id') = ?",
+                (user_id,),
+            ) as cur:
+                return [json.loads(r[0]) for r in await cur.fetchall()]
         async with db.execute("SELECT data FROM submissions") as cur:
-            rows = [json.loads(r[0]) for r in await cur.fetchall()]
-    if user_id is not None:
-        return [r for r in rows if r["user_id"] == user_id]
-    return rows
+            return [json.loads(r[0]) for r in await cur.fetchall()]
 
 
 async def get_submission_by_id(sid: int) -> dict | None:
