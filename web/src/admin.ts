@@ -8,6 +8,7 @@ import {
 import { esc, showToast, accessDenied } from './utils';
 
 let allUsers: AdminUser[] = [];
+let adminName: string = '';
 
 function renderTable(users: AdminUser[]): void {
     if (!users.length) {
@@ -30,7 +31,12 @@ function renderTable(users: AdminUser[]): void {
             <td>
               <div class="action-btns">
                 <a class="act-btn act-copy" data-uid="${u.id}" title="Login link" href="index.html?user=${encodeURIComponent(u.username)}&token=${encodeURIComponent(u.magic_token)}">🔗</a>
-                <button class="act-btn act-email" data-uid="${u.id}" title="Send magic link via email" style="background:#e0e7ff;color:#4338ca;">📧</button>
+                ${u.email ? (() => {
+                    const link = window.location.origin + window.location.pathname.replace('admin.html', 'index.html') + '?user=' + encodeURIComponent(u.username) + '&token=' + encodeURIComponent(u.magic_token);
+                    const subject = 'Your Last Translation Benchmark Login Link';
+                    const body = `Dear ${u.name || u.username},\n\nThank you for your interest in Last Translation Benchmark. You can submit hard-to-translate inputs via this link (do not share with anyone):\n\n${link}\n\nPlease make sure that you read the instructions in detail.\nLet us know if you have any questions or need to increase your submission quota.\n\nOn behalf of LTB organizers,\n${adminName}`;
+                    return `<a class="act-btn" title="Send magic link via email" href="mailto:${encodeURIComponent(u.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="background:#e0e7ff;color:#4338ca;text-decoration:none;">📧</a>`;
+                })() : `<button class="act-btn act-email" title="Send magic link via email" style="background:#e0e7ff;color:#4338ca;">📧</button>`}
                 <button class="act-btn act-rotate" data-uid="${u.id}" title="Rotate magic token">🔄</button>
                 <button class="act-btn act-quota" data-uid="${u.id}" title="Adjust quota">±</button>
                 <button class="act-btn act-delete" data-uid="${u.id}" title="Remove user">✕</button>
@@ -75,36 +81,8 @@ function renderTable(users: AdminUser[]): void {
         } catch (e) { alert(e); }
     });
 
-    $('.act-email').on('click', async function () {
-        const uid = $(this).data('uid');
-        const u = allUsers.find(u => u.id === uid);
-        if (!u || !u.email) {
-            alert('User does not have an email address set.');
-            return;
-        }
-
-        try {
-            const me = await getMe();
-            const adminName = me.name || me.username;
-
-            const link = window.location.origin + window.location.pathname.replace('admin.html', 'index.html') +
-                '?user=' + encodeURIComponent(u.username) + '&token=' + encodeURIComponent(u.magic_token);
-
-            const subject = 'Your Last Translation Benchmark Login Link';
-            const body = `Dear ${u.name || u.username},
-
-Thank you for your interest in Last Translation Benchmark. You can submit hard-to-translate inputs via this link (do not share with anyone):
-
-${link}
-
-Please make sure that you read the instructions in detail.
-Let us know if you have any questions or need to increase your submission quota.
-
-On behalf of LTB organizers,
-${adminName}`;
-
-            window.location.href = `mailto:${encodeURIComponent(u.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        } catch (e) { alert('Failed to get current user info for email signature.'); }
+    $('.act-email').on('click', function () {
+        alert('User does not have an email address set.');
     });
 
     $('.act-delete').on('click', async function () {
@@ -167,6 +145,7 @@ $(async () => {
     if (!token || !username) { window.location.href = 'index.html'; return; }
     try {
         const user = await getMe();
+        adminName = user.name || user.username;
         renderRoleSwitcher(user.roles);
         if (!user.roles.includes('admin')) { accessDenied(user.roles, 'admin'); return; }
         $('#admin-info').text(`${user.username} (Admin)`);

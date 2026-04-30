@@ -209,38 +209,42 @@ export function renderRoleSwitcher(roles: string[]): void {
     const search = window.location.search;
 
     if (roles.includes('contributor')) {
-        const btn = document.createElement('button');
+        const btn = document.createElement('a');
         btn.textContent = 'Contribute';
         btn.className = 'btn btn-secondary';
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
-        btn.onclick = () => window.location.href = 'contributor.html' + search;
+        btn.style.textDecoration = 'none';
+        btn.href = 'contributor.html' + search;
         container.appendChild(btn);
     }
     if (roles.includes('reviewer')) {
-        const btn = document.createElement('button');
+        const btn = document.createElement('a');
         btn.textContent = 'Review';
         btn.className = 'btn btn-secondary';
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
-        btn.onclick = () => window.location.href = 'reviewer.html' + search;
+        btn.style.textDecoration = 'none';
+        btn.href = 'reviewer.html' + search;
         container.appendChild(btn);
     }
     if (roles.includes('admin')) {
-        const btn = document.createElement('button');
+        const btn = document.createElement('a');
         btn.textContent = 'Admin';
         btn.className = 'btn btn-secondary';
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
-        btn.onclick = () => window.location.href = 'admin.html' + search;
+        btn.style.textDecoration = 'none';
+        btn.href = 'admin.html' + search;
         container.appendChild(btn);
     }
-    const profileBtn = document.createElement('button');
+    const profileBtn = document.createElement('a');
     profileBtn.textContent = 'Profile';
     profileBtn.className = 'btn btn-secondary';
     profileBtn.style.padding = '3px 8px';
     profileBtn.style.fontSize = '0.8em';
-    profileBtn.onclick = () => window.location.href = 'profile.html' + search;
+    profileBtn.style.textDecoration = 'none';
+    profileBtn.href = 'profile.html' + search;
     container.appendChild(profileBtn);
 
     const headerActions = document.querySelector('header > div');
