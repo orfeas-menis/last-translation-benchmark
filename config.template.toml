@@ -7,4 +7,4 @@ LIBRE_URL = ""
 OPENROUTER_API_KEY = ""
 
 CONTRIBUTOR_QUOTA_DEFAULT = 10
-DATA_PATH = "data/db.json"
+DB_PATH = "data/db.sqlite"

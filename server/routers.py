@@ -5,7 +5,19 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 
 from .auth import get_current_user, require_admin
-from .db import db_state, next_id, save_data
+from .db import (
+    delete_user,
+    get_submission_by_id,
+    get_user_by_id,
+    get_users,
+    next_submission_id,
+    next_user_id,
+    save_submission,
+    save_user,
+)
+from .db import (
+    get_submissions as db_get_submissions,
+)
 from .languages import LANGUAGES
 from .models import (
     CommentReq,
@@ -37,12 +49,9 @@ router = APIRouter()
 
 
 @router.get("/api/me")
-def me(user=Depends(get_current_user)):
-    total_points = sum(
-        s["points"]
-        for s in db_state["submissions"]
-        if s["user_id"] == user["id"] and s["points"] >= 0
-    )
+async def me(user=Depends(get_current_user)):
+    submissions = await db_get_submissions(user_id=user["id"])
+    total_points = sum(s["points"] for s in submissions if s["points"] >= 0)
     return {
         "username": user["username"],
         "roles": user["roles"],
@@ -57,7 +66,7 @@ def me(user=Depends(get_current_user)):
 
 
 @router.put("/api/profile")
-def update_profile(req: ProfileReq, user=Depends(get_current_user)):
+async def update_profile(req: ProfileReq, user=Depends(get_current_user)):
     user.update(
         {
             "name": req.name,
@@ -66,7 +75,7 @@ def update_profile(req: ProfileReq, user=Depends(get_current_user)):
             "credit_consent": req.credit_consent,
         }
     )
-    save_data()
+    await save_user(user)
     return {"ok": True}
 
 
@@ -86,76 +95,73 @@ def _admin_user_view(u: dict) -> dict:
 
 
 @router.get("/api/admin/users")
-def admin_users(user=Depends(get_current_user)):
+async def admin_users(user=Depends(get_current_user)):
     require_admin(user)
-    return [_admin_user_view(u) for u in db_state["users"]]
+    return [_admin_user_view(u) for u in await get_users()]
 
 
 @router.post("/api/admin/users", status_code=201)
-def admin_create_user(req: CreateUserReq, user=Depends(get_current_user)):
+async def admin_create_user(req: CreateUserReq, user=Depends(get_current_user)):
     require_admin(user)
     if not req.username.strip():
         raise HTTPException(status_code=400, detail="Username cannot be empty")
-    if any(
-        u["username"].lower() == req.username.strip().lower() for u in db_state["users"]
-    ):
+    users = await get_users()
+    if any(u["username"].lower() == req.username.strip().lower() for u in users):
         raise HTTPException(status_code=409, detail="Username already exists")
     valid_roles = {"admin", "contributor", "reviewer"}
     bad = [r for r in req.roles if r not in valid_roles]
     if bad:
         raise HTTPException(status_code=400, detail=f"Invalid roles: {bad}")
     new_user = {
-        "id": next_id(db_state["users"]),
+        "id": await next_user_id(),
         "username": req.username.strip(),
         "magic_token": secrets.token_urlsafe(24),
         "roles": req.roles,
         "quota": CONTRIBUTOR_QUOTA_DEFAULT,
         "quota_used": 0,
     }
-    db_state["users"].append(new_user)
-    save_data()
+    await save_user(new_user)
     return _admin_user_view(new_user)
 
 
 @router.delete("/api/admin/users/{uid}", status_code=200)
-def admin_delete_user(uid: int, user=Depends(get_current_user)):
+async def admin_delete_user(uid: int, user=Depends(get_current_user)):
     require_admin(user)
     if user["id"] == uid:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
-    target = next((u for u in db_state["users"] if u["id"] == uid), None)
+    target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
-    db_state["users"] = [u for u in db_state["users"] if u["id"] != uid]
-    save_data()
+    await delete_user(uid)
     return {"ok": True}
 
 
 @router.post("/api/admin/users/{uid}/rotate-token")
-def admin_rotate_token(uid: int, user=Depends(get_current_user)):
+async def admin_rotate_token(uid: int, user=Depends(get_current_user)):
     require_admin(user)
-    target = next((u for u in db_state["users"] if u["id"] == uid), None)
+    target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
     target["magic_token"] = secrets.token_urlsafe(24)
-    save_data()
+    await save_user(target)
     return {"magic_token": target["magic_token"]}
 
 
 @router.post("/api/admin/users/{uid}/adjust-quota")
-def admin_adjust_quota(uid: int, req: QuotaReq, user=Depends(get_current_user)):
+async def admin_adjust_quota(uid: int, req: QuotaReq, user=Depends(get_current_user)):
     require_admin(user)
-    target = next((u for u in db_state["users"] if u["id"] == uid), None)
+    target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
     target["quota"] = max(0, target.get("quota", CONTRIBUTOR_QUOTA_DEFAULT) + req.delta)
-    save_data()
+    await save_user(target)
     return {"quota": target["quota"], "quota_used": target.get("quota_used", 0)}
 
 
 @router.post("/api/admin/users/{uid}/roles")
-def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_user)):
+async def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_user)):
     require_admin(user)
-    target = next((u for u in db_state["users"] if u["id"] == uid), None)
+    target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
     valid_roles = {"admin", "contributor", "reviewer"}
@@ -163,7 +169,7 @@ def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_user)):
     if bad:
         raise HTTPException(status_code=400, detail=f"Invalid roles: {bad}")
     target["roles"] = req.roles
-    save_data()
+    await save_user(target)
     return _admin_user_view(target)
 
 
@@ -171,7 +177,7 @@ def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_user)):
 
 
 @router.post("/api/translate-submission")
-def translate_submission(req: TranslateReq, user=Depends(get_current_user)):
+async def translate_submission(req: TranslateReq, user=Depends(get_current_user)):
     if "contributor" not in user.get("roles", []):
         raise HTTPException(
             status_code=403, detail="Only contributors can use translation quota"
@@ -204,73 +210,33 @@ def translate_submission(req: TranslateReq, user=Depends(get_current_user)):
 
     async def _run_translate(name: str, func, *args):
         try:
-            res = await asyncio.to_thread(func, *args)
+            if asyncio.iscoroutinefunction(func):
+                res = await func(*args)
+            else:
+                res = await asyncio.to_thread(func, *args)
             return {"api": name, "translation": res, "error": None}
         except Exception as exc:
             return {"api": name, "translation": None, "error": str(exc)}
 
-    async def _run_all():
-        tasks = []
-        # Standard services (only if codes exist)
-        if source_code and target_code:
-            tasks.append(
-                _run_translate(
-                    "MyMemory",
-                    translate_mymemory,
-                    req.text,
-                    source_code,
-                    target_code,
-                )
-            )
-            tasks.append(
-                _run_translate(
-                    "Google", translate_google, req.text, source_code, target_code
-                )
-            )
-
-        # LLM services (always use names)
-        llm_tasks = [
-            _run_translate(
-                "Gemini 2.5 Flash Lite",
-                translate_gemini2_5flash,
-                req.text,
-                source_name,
-                target_name,
-            ),
-            _run_translate(
-                "Gemma 4",
-                translate_gemma4,
-                req.text,
-                source_name,
-                target_name,
-            ),
-            _run_translate(
-                "Qwen 3.6 Plus",
-                translate_qwen3p6,
-                req.text,
-                source_name,
-                target_name,
-            ),
-            _run_translate(
-                "GPT-4.1 Nano",
-                translate_gpt4p1nano,
-                req.text,
-                source_name,
-                target_name,
-            ),
-        ]
-        tasks.extend(llm_tasks)
-        return await asyncio.gather(*tasks)
-
-    results = asyncio.run(_run_all())
+    tasks = []
+    if source_code and target_code:
+        tasks.append(_run_translate("MyMemory", translate_mymemory, req.text, source_code, target_code))
+        tasks.append(_run_translate("Google", translate_google, req.text, source_code, target_code))
+    tasks += [
+        _run_translate("Gemini 2.5 Flash Lite", translate_gemini2_5flash, req.text, source_name, target_name),
+        _run_translate("Gemma 4", translate_gemma4, req.text, source_name, target_name),
+        _run_translate("Qwen 3.6 Plus", translate_qwen3p6, req.text, source_name, target_name),
+        _run_translate("GPT-4.1 Nano", translate_gpt4p1nano, req.text, source_name, target_name),
+    ]
+    results = await asyncio.gather(*tasks)
 
     user["quota_used"] = quota_used + 1
-    save_data()
+    await save_user(user)
     return {"results": results, "quota": quota, "quota_used": quota_used + 1}
 
 
 @router.post("/api/verify-submission")
-def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
+async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
     if not req.verification_rules:
         return {"results": [True] * len(req.translations)}
 
@@ -284,21 +250,14 @@ def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
                     return False
             elif rule.type == "llm":
                 try:
-                    res = await asyncio.to_thread(
-                        verify_llm, source_text, translation, rule.value
-                    )
+                    res = await verify_llm(req.source_text, translation, rule.value)
                     if not res:
                         return False
                 except Exception as exc:
                     raise HTTPException(status_code=502, detail=f"LLM API error: {exc}")
         return True
 
-    async def _run_verify():
-        return await asyncio.gather(
-            *[_verify_single(req.source_text, t) for t in req.translations]
-        )
-
-    results = asyncio.run(_run_verify())
+    results = await asyncio.gather(*[_verify_single(req.source_text, t) for t in req.translations])
     return {"results": results}
 
 
@@ -306,7 +265,7 @@ def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
 
 
 @router.post("/api/submissions")
-def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
+async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
     if "contributor" not in user.get("roles", []):
         raise HTTPException(
             status_code=403, detail="Only contributors can submit submissions"
@@ -323,28 +282,26 @@ def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
     ):
         raise HTTPException(status_code=400, detail="Field missing")
 
-    sid = next_id(db_state["submissions"])
-    db_state["submissions"].append(
-        {
-            "id": sid,
-            "user_id": user["id"],
-            "username": user["username"],
-            "source_text": req.source_text,
-            "source_lang": req.source_lang,
-            "target_lang": req.target_lang,
-            "verification_rules": [r.model_dump() for r in req.verification_rules],
-            "translations": [t.model_dump() for t in req.translations],
-            "points": -1,
-            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
-        }
-    )
-    save_data()
+    sid = await next_submission_id()
+    submission = {
+        "id": sid,
+        "user_id": user["id"],
+        "username": user["username"],
+        "source_text": req.source_text,
+        "source_lang": req.source_lang,
+        "target_lang": req.target_lang,
+        "verification_rules": [r.model_dump() for r in req.verification_rules],
+        "translations": [t.model_dump() for t in req.translations],
+        "points": -1,
+        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    await save_submission(submission)
     return {"ok": True}
 
 
 @router.put("/api/submissions/{sid}")
-def update_submission(sid: int, req: SubmissionReq, user=Depends(get_current_user)):
-    submission = next((s for s in db_state["submissions"] if s["id"] == sid), None)
+async def update_submission(sid: int, req: SubmissionReq, user=Depends(get_current_user)):
+    submission = await get_submission_by_id(sid)
     if submission is None:
         raise HTTPException(status_code=404, detail="Submission not found")
 
@@ -360,33 +317,32 @@ def update_submission(sid: int, req: SubmissionReq, user=Depends(get_current_use
             "target_lang": req.target_lang,
             "verification_rules": [r.model_dump() for r in req.verification_rules],
             "translations": [t.model_dump() for t in req.translations],
-            "points": -1,  # Reset to pending
+            "points": -1,
             "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
-    save_data()
+    await save_submission(submission)
     return {"ok": True}
 
 
 @router.get("/api/submissions")
-def get_submissions(user=Depends(get_current_user)):
+async def list_submissions(user=Depends(get_current_user)):
     if "reviewer" in user.get("roles", []):
         rows = sorted(
-            db_state["submissions"],
+            await db_get_submissions(),
             key=lambda s: (s["points"], s["created_at"]),
         )
     else:
         rows = sorted(
-            [s for s in db_state["submissions"] if s["user_id"] == user["id"]],
+            await db_get_submissions(user_id=user["id"]),
             key=lambda s: s["created_at"],
             reverse=True,
         )
-
     return rows
 
 
 @router.post("/api/submissions/{sid}/score")
-def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_user)):
+async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_user)):
     if "reviewer" not in user.get("roles", []):
         raise HTTPException(
             status_code=403, detail="Only reviewer users can score submissions"
@@ -395,14 +351,14 @@ def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_user)):
         raise HTTPException(
             status_code=400, detail="Action must be reject, accept, or comment"
         )
-    submission = next((s for s in db_state["submissions"] if s["id"] == sid), None)
+    submission = await get_submission_by_id(sid)
     if submission is None:
         raise HTTPException(status_code=404, detail="Submission not found")
     if req.action == "accept":
         submission["points"] = 1
     elif req.action == "reject":
         submission["points"] = 0
-    else:  # comment — stays pending, stores comment for contributor
+    else:
         submission["points"] = -1
     submission["reviewer_comment"] = req.comment or ""
 
@@ -418,13 +374,13 @@ def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_user)):
             }
         )
 
-    save_data()
+    await save_submission(submission)
     return {"ok": True}
 
 
 @router.post("/api/submissions/{sid}/comment")
-def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user)):
-    submission = next((s for s in db_state["submissions"] if s["id"] == sid), None)
+async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user)):
+    submission = await get_submission_by_id(sid)
     if submission is None:
         raise HTTPException(status_code=404, detail="Submission not found")
 
@@ -462,5 +418,5 @@ def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user)):
         submission["points"] = -1
         submission["reviewer_comment"] = req.comment
 
-    save_data()
+    await save_submission(submission)
     return {"ok": True}

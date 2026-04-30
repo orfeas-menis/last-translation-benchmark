@@ -4,6 +4,9 @@ from openrouter import OpenRouter
 
 from .utils import get_config
 
+OPENROUTER_CLIENT = OpenRouter(api_key=get_config("OPENROUTER_API_KEY", ""))
+HTTP_CLIENT = httpx.AsyncClient(timeout=10)
+
 
 def translate_google(text: str, src_lang: str, tgt_lang: str) -> str:
     return GoogleTranslator(source=src_lang, target=tgt_lang).translate(text)
@@ -18,11 +21,10 @@ def translate_deepl(text: str, src_lang: str, tgt_lang: str) -> str:
     ).translate(text)
 
 
-def translate_mymemory(text: str, src_lang: str, tgt_lang: str) -> str:
-    resp = httpx.get(
+async def translate_mymemory(text: str, src_lang: str, tgt_lang: str) -> str:
+    resp = await HTTP_CLIENT.get(
         "https://api.mymemory.translated.net/get",
         params={"q": text, "langpair": f"{src_lang}|{tgt_lang}"},
-        timeout=10,
     )
     data = resp.json()
     if data.get("responseStatus") == 200:
@@ -30,10 +32,9 @@ def translate_mymemory(text: str, src_lang: str, tgt_lang: str) -> str:
     raise Exception(data.get("responseDetails", "API returned an error"))
 
 
-def call_llm(prompt: str, model: str = "google/gemini-2.5-flash-lite") -> str:
-    # use openrouter api
-    client = OpenRouter(api_key=get_config("OPENROUTER_API_KEY", ""))
-    response = client.chat.send(
+async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash-lite") -> str:
+    # use global openrouter client
+    response = await OPENROUTER_CLIENT.chat.send_async(
         model=model,
         messages=[
             {
@@ -46,8 +47,8 @@ def call_llm(prompt: str, model: str = "google/gemini-2.5-flash-lite") -> str:
     return response.choices[0].message.content
 
 
-def verify_llm(source_text: str, translation: str, rule: str) -> bool:
-    text = call_llm(
+async def verify_llm(source_text: str, translation: str, rule: str) -> bool:
+    text = await call_llm(
         f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nSource text: {source_text}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else.",
         model="google/gemini-2.5-flash-lite",
     )
@@ -58,21 +59,21 @@ def verify_llm(source_text: str, translation: str, rule: str) -> bool:
         return "pass" in text
 
 
-def translate_gemini2_5flash(text: str, src_lang: str, tgt_lang: str) -> str:
+async def translate_gemini2_5flash(text: str, src_lang: str, tgt_lang: str) -> str:
     prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
-    return call_llm(prompt, model="google/gemini-2.5-flash-lite")
+    return await call_llm(prompt, model="google/gemini-2.5-flash-lite")
 
 
-def translate_gemma4(text: str, src_lang: str, tgt_lang: str) -> str:
+async def translate_gemma4(text: str, src_lang: str, tgt_lang: str) -> str:
     prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
-    return call_llm(prompt, model="google/gemma-4-31b-it")
+    return await call_llm(prompt, model="google/gemma-4-31b-it")
 
 
-def translate_qwen3p6(text: str, src_lang: str, tgt_lang: str) -> str:
+async def translate_qwen3p6(text: str, src_lang: str, tgt_lang: str) -> str:
     prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
-    return call_llm(prompt, model="qwen/qwen3.6-plus")
+    return await call_llm(prompt, model="qwen/qwen3.6-plus")
 
 
-def translate_gpt4p1nano(text: str, src_lang: str, tgt_lang: str) -> str:
+async def translate_gpt4p1nano(text: str, src_lang: str, tgt_lang: str) -> str:
     prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
-    return call_llm(prompt, model="openai/gpt-4.1-nano")
+    return await call_llm(prompt, model="openai/gpt-4.1-nano")

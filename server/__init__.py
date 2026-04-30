@@ -3,19 +3,34 @@ Last Translation Benchmark — FastAPI backend
 """
 
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from .db import db_state
+from .db import get_users, init_db
 from .routers import router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    print("\n=== Magic login links ===")
+    host_public = os.getenv("HOST_PUBLIC")
+    for user in await get_users():
+        print(
+            f"  {user['username']:12s}  {host_public}/?user={user['username']}&token={user['magic_token']}"
+        )
+    print("=========================\n")
+    yield
+
 
 # ---------------------------------------------------------------------------
 # App + middleware
 # ---------------------------------------------------------------------------
 
-app = FastAPI(title="Last Translation Benchmark")
+app = FastAPI(title="Last Translation Benchmark", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -24,17 +39,6 @@ app.add_middleware(
 )
 
 app.include_router(router)
-
-
-@app.on_event("startup")
-def _print_magic_links() -> None:
-    print("\n=== Magic login links ===")
-    host_public = os.getenv("HOST_PUBLIC")
-    for user in db_state["users"]:
-        print(
-            f"  {user['username']:12s}  {host_public}/?user={user['username']}&token={user['magic_token']}"
-        )
-    print("=========================\n")
 
 
 # ---------------------------------------------------------------------------
