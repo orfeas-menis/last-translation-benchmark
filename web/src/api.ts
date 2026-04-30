@@ -28,7 +28,7 @@ export interface Comment {
 }
 
 export interface Rule {
-    type: 'llm' | 'contains' | 'not_contains';
+    type: 'llm' | 'contains' | 'not_contains' | '';
     value: string;
 }
 
