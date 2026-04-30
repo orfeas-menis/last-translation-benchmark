@@ -6,8 +6,7 @@ export interface User {
     username: string;
     roles: string[];
     quota_used: number;
-    quota_remaining: number;
-    contributor_quota: number;
+    quota: number;
     total_points: number;
     name: string;
     affiliation: string;
@@ -97,7 +96,8 @@ export function getMe() {
 export function translate(text: string, source_lang: string, target_lang: string) {
     return apiCall<{
         results: Array<{ api: string; translation: string | null; error: string | null }>;
-        quota_remaining: number;
+        quota_used: number;
+        quota: number;
     }>('POST', 'api/translate-submission', { text, source_lang, target_lang });
 }
 
@@ -157,6 +157,7 @@ export interface AdminUser {
     affiliation: string;
     email: string;
     credit_consent: boolean;
+    quota: number;
     quota_used: number;
 }
 
@@ -174,6 +175,14 @@ export function deleteAdminUser(uid: number) {
 
 export function rotateAdminToken(uid: number) {
     return apiCall<{ magic_token: string }>('POST', `api/admin/users/${uid}/rotate-token`);
+}
+
+export function adjustAdminQuota(uid: number, delta: number) {
+    return apiCall<{ quota: number, quota_used: number }>('POST', `api/admin/users/${uid}/adjust-quota`, { delta });
+}
+
+export function updateAdminRoles(uid: number, roles: string[]) {
+    return apiCall<AdminUser>('POST', `api/admin/users/${uid}/roles`, { roles });
 }
 
 export function addComment(id: number, comment: string) {
