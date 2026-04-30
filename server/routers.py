@@ -210,7 +210,10 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
 
     async def _run_translate(name: str, func, *args):
         try:
-            res = await asyncio.to_thread(func, *args)
+            if asyncio.iscoroutinefunction(func):
+                res = await func(*args)
+            else:
+                res = await asyncio.to_thread(func, *args)
             return {"api": name, "translation": res, "error": None}
         except Exception as exc:
             return {"api": name, "translation": None, "error": str(exc)}
@@ -247,7 +250,7 @@ async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
                     return False
             elif rule.type == "llm":
                 try:
-                    res = await asyncio.to_thread(verify_llm, source_text, translation, rule.value)
+                    res = await verify_llm(req.source_text, translation, rule.value)
                     if not res:
                         return False
                 except Exception as exc:

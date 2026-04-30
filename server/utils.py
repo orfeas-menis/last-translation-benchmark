@@ -19,5 +19,5 @@ def get_config(key: str, default: Any = "") -> Any:
 
 
 CONTRIBUTOR_QUOTA_DEFAULT = get_config("CONTRIBUTOR_QUOTA_DEFAULT", 10)
-DATA_PATH = get_config("DATA_PATH", "data/db.sqlite")
+DB_PATH = get_config("DB_PATH", "data/db.sqlite")
 OPENAI_API_KEY = get_config("OPENAI_API_KEY", "")

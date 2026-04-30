@@ -4,9 +4,7 @@ import secrets
 
 import aiosqlite
 
-from .utils import CONTRIBUTOR_QUOTA_DEFAULT, DATA_PATH
-
-DB_PATH = DATA_PATH
+from .utils import CONTRIBUTOR_QUOTA_DEFAULT, DB_PATH
 
 
 def _open_db():
@@ -14,6 +12,7 @@ def _open_db():
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
     return aiosqlite.connect(DB_PATH)
+
 
 _TABLES = {"users", "submissions"}
 
@@ -84,7 +83,9 @@ async def get_submissions(user_id: int | None = None) -> list[dict]:
 
 async def get_submission_by_id(sid: int) -> dict | None:
     async with _open_db() as db:
-        async with db.execute("SELECT data FROM submissions WHERE id = ?", (sid,)) as cur:
+        async with db.execute(
+            "SELECT data FROM submissions WHERE id = ?", (sid,)
+        ) as cur:
             row = await cur.fetchone()
             return json.loads(row[0]) if row else None
 
