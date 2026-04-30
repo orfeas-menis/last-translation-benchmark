@@ -13,6 +13,7 @@ class Rule(BaseModel):
     value: str
 
 class VerifyReq(BaseModel):
+    source_text: str
     translations: list[str]
     verification_rules: list[Rule]
 

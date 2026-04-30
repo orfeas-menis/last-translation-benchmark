@@ -46,9 +46,9 @@ def call_llm(prompt: str, model: str = "google/gemini-2.5-flash-lite") -> str:
     return response.choices[0].message.content
 
 
-def verify_llm(translation: str, rule: str) -> bool:
+def verify_llm(source_text: str, translation: str, rule: str) -> bool:
     text = call_llm(
-        f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else.",
+        f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nSource text: {source_text}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else.",
         model="google/gemini-2.5-flash-lite",
     )
     text = text.strip().lower()

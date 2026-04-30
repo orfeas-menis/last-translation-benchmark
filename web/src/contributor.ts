@@ -125,7 +125,8 @@ $(async () => {
 
         $('#verify-result').html('<span style="color:#64748b;font-size:0.9em">Verifying...</span>');
         try {
-            const data = await verify(translations, rules);
+            const source_text = String($('#src-text').val() ?? '').trim();
+            const data = await verify(source_text, translations, rules);
 
             let resultIdx = 0;
             let pass = 0;

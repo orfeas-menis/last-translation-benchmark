@@ -233,7 +233,7 @@ def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
     if not req.verification_rules:
         return {"results": [True] * len(req.translations)}
 
-    async def _verify_single(translation: str) -> bool:
+    async def _verify_single(source_text: str, translation: str) -> bool:
         for rule in req.verification_rules:
             if rule.type == "contains":
                 if rule.value not in translation:
@@ -243,7 +243,7 @@ def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
                     return False
             elif rule.type == "llm":
                 try:
-                    res = await asyncio.to_thread(verify_llm, translation, rule.value)
+                    res = await asyncio.to_thread(verify_llm, source_text, translation, rule.value)
                     if not res:
                         return False
                 except Exception as exc:
@@ -251,7 +251,7 @@ def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
         return True
 
     async def _run_verify():
-        return await asyncio.gather(*[_verify_single(t) for t in req.translations])
+        return await asyncio.gather(*[_verify_single(req.source_text, t) for t in req.translations])
 
     results = asyncio.run(_run_verify())
     return {"results": results}
