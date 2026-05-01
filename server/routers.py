@@ -191,7 +191,7 @@ async def admin_update_review_scope(uid: int, req: ReviewScopeReq, user=Depends(
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
-    target["review_langs"] = [lang.strip() for lang in req.review_langs]
+    target["review_langs"] = req.review_langs
     await save_user(target)
     return _admin_user_view(target)
 

@@ -122,7 +122,7 @@ function renderTable(users: AdminUser[]): void {
         const input = prompt('Language scope (comma-separated, empty = all, e.g. English,Czech,German):', current);
         if (input === null) return;
         if (input.includes(', ')) { alert('Use commas without spaces (e.g. English,Czech,German).'); return; }
-        const langs = input.trim() ? input.split(',').map(s => s.trim()).filter(Boolean) : [];
+        const langs = input.trim() ? input.split(',').filter(Boolean) : [];
         try {
             const res = await updateAdminReviewScope(uid, langs);
             u.review_langs = res.review_langs;
