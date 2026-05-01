@@ -314,7 +314,7 @@ $(async () => {
 // ---- Stats bar ----
 
 function renderStats(used: number, quota: number, accepted: number): void {
-    $('#quota-text').text(`Used: ${used}, Quota: ${quota}`);
+    $('#quota-text').text(`Used: ${used} / ${quota}`);
     $('#total-points').text(accepted);
 }
 
