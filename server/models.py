@@ -49,4 +49,4 @@ class RolesReq(BaseModel):
     roles: list[str]
 
 class ReviewScopeReq(BaseModel):
-    review_scope: str
+    review_langs: list[str]

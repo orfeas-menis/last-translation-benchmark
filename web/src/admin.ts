@@ -31,7 +31,7 @@ function renderTable(users: AdminUser[]): void {
             <td>${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
             <td class="email-cell">${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : '<span class="muted">—</span>'}</td>
             <td style="text-align:right;color:#64748b;white-space:nowrap">${u.quota_used} / ${u.quota}</td>
-            <td class="scope-cell" data-uid="${u.id}" title="Click to edit review scope">${esc(u.review_scope || '*')}</td>
+            <td class="scope-cell" data-uid="${u.id}" title="Click to edit language scope">${u.review_langs && u.review_langs.length ? esc(u.review_langs.join(',')) : '<span class="muted">all</span>'}</td>
             <td>
               <div class="action-btns">
                 <a class="act-btn act-copy" data-uid="${u.id}" title="Login link" href="${link}">🔗</a>
@@ -118,17 +118,16 @@ function renderTable(users: AdminUser[]): void {
         const uid = $(this).data('uid');
         const u = allUsers.find(u => u.id === uid);
         if (!u) return;
-        let newScope = prompt('Review scope (regex, * = all, e.g. Czech->* or (Czech|German)->(Czech|German)):', u.review_scope || '*');
-        if (newScope === null) return;
-        newScope = newScope.trim() || '*';
-        if (!newScope.includes('->') && newScope !== '*') {
-            newScope = `${newScope}->${newScope}`;
-        }
+        const current = (u.review_langs && u.review_langs.length) ? u.review_langs.join(',') : '';
+        const input = prompt('Language scope (comma-separated, empty = all, e.g. English,Czech,German):', current);
+        if (input === null) return;
+        if (input.includes(', ')) { alert('Use commas without spaces (e.g. English,Czech,German).'); return; }
+        const langs = input.trim() ? input.split(',').map(s => s.trim()).filter(Boolean) : [];
         try {
-            const res = await updateAdminReviewScope(uid, newScope);
-            u.review_scope = res.review_scope;
+            const res = await updateAdminReviewScope(uid, langs);
+            u.review_langs = res.review_langs;
             applyFilter();
-            showToast('Review scope updated');
+            showToast('Language scope updated');
         } catch (e) { alert(e); }
     });
 }

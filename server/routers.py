@@ -1,5 +1,4 @@
 import asyncio
-import re
 import secrets
 from datetime import datetime, timezone
 
@@ -128,7 +127,7 @@ def _admin_user_view(u: dict) -> dict:
         "credit_consent": u.get("credit_consent", False),
         "quota": u.get("quota", CONTRIBUTOR_QUOTA_DEFAULT),
         "quota_used": u.get("quota_used", 0),
-        "review_scope": u.get("review_scope", "*"),
+        "review_langs": u.get("review_langs", []),
     }
 
 
@@ -189,32 +188,22 @@ async def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_u
 @router.post("/api/admin/users/{uid}/review-scope")
 async def admin_update_review_scope(uid: int, req: ReviewScopeReq, user=Depends(get_current_user)):
     require_admin(user)
-    try:
-        re.compile(_scope_pattern(req.review_scope))
-    except re.error as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid review scope pattern: {exc}")
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
-    target["review_scope"] = req.review_scope
+    target["review_langs"] = [lang.strip() for lang in req.review_langs]
     await save_user(target)
     return _admin_user_view(target)
 
 
-def _scope_pattern(scope: str) -> str:
-    """Convert a scope string (glob-like * wildcard) to a regex pattern."""
-    # Replace * with .* for regex matching, but avoid double-converting .*
-    return re.sub(r"(?<!\.)(\*)", r".*", scope)
-
-
-def _submission_matches_scope(submission: dict, scope: str) -> bool:
-    if scope == "*":
+def _submission_matches_scope(submission: dict, review_langs: list[str]) -> bool:
+    if not review_langs:
         return True
-    lang_pair = f"{submission['source_lang']}->{submission['target_lang']}"
-    try:
-        return bool(re.fullmatch(_scope_pattern(scope), lang_pair))
-    except re.error:
-        return True  # invalid regex: show all
+    langs_lower = {lang.lower() for lang in review_langs}
+    return (
+        submission["source_lang"].lower() in langs_lower
+        or submission["target_lang"].lower() in langs_lower
+    )
 
 
 # --- Translate ---
@@ -398,9 +387,9 @@ async def list_submissions(user=Depends(get_current_user), mode: str = "contribu
             await db_get_submissions(),
             key=lambda s: (s["points"], s["created_at"]),
         )
-        scope = user.get("review_scope", "*")
-        if scope != "*":
-            rows = [s for s in rows if _submission_matches_scope(s, scope)]
+        review_langs = user.get("review_langs", [])
+        if review_langs:
+            rows = [s for s in rows if _submission_matches_scope(s, review_langs)]
     else:
         rows = sorted(
             await db_get_submissions(user_id=user["id"]),
