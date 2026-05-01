@@ -2,7 +2,7 @@ import './style.css';
 import $ from 'jquery';
 import {
     getToken, getUsername, getMe, getAdminUsers, deleteAdminUser,
-    rotateAdminToken, adjustAdminQuota, updateAdminRoles, renderRoleSwitcher, AdminUser,
+    rotateAdminToken, adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, renderRoleSwitcher, AdminUser,
 } from './api';
 
 import { esc, showToast, accessDenied } from './utils';
@@ -29,8 +29,9 @@ function renderTable(users: AdminUser[]): void {
             <td>${rolesHtml}</td>
             <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
             <td>${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
-            <td>${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : '<span class="muted">—</span>'}</td>
+            <td class="email-cell">${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : '<span class="muted">—</span>'}</td>
             <td style="text-align:right;color:#64748b;white-space:nowrap">${u.quota_used} / ${u.quota}</td>
+            <td class="scope-cell" data-uid="${u.id}" title="Click to edit review scope">${esc(u.review_scope || '*')}</td>
             <td>
               <div class="action-btns">
                 <a class="act-btn act-copy" data-uid="${u.id}" title="Login link" href="${link}">🔗</a>
@@ -48,7 +49,7 @@ function renderTable(users: AdminUser[]): void {
     }).join('');
 
     $('#user-table').html(`<table>
-        <thead><tr><th>Username</th><th>Roles</th><th>Name</th><th>Affiliation</th><th>Email</th><th style="text-align:right">Used / Quota</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Username</th><th>Roles</th><th>Name</th><th>Affiliation</th><th>Email</th><th style="text-align:right">Used / Quota</th><th>Scope</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`);
 
@@ -110,6 +111,24 @@ function renderTable(users: AdminUser[]): void {
             if (u) { u.quota = res.quota; u.quota_used = res.quota_used; }
             applyFilter();
             showToast('Quota updated');
+        } catch (e) { alert(e); }
+    });
+
+    $('.scope-cell').on('click', async function () {
+        const uid = $(this).data('uid');
+        const u = allUsers.find(u => u.id === uid);
+        if (!u) return;
+        let raw = prompt('Review scope (regex, * = all, e.g. Czech->* or (Czech|German)->(Czech|German)):', u.review_scope || '*');
+        if (raw === null) return;
+        raw = raw.trim() || '*';
+        if (!raw.includes('->') && raw !== '*') {
+            raw = `${raw}->${raw}`;
+        }
+        try {
+            const res = await updateAdminReviewScope(uid, raw);
+            u.review_scope = res.review_scope;
+            applyFilter();
+            showToast('Review scope updated');
         } catch (e) { alert(e); }
     });
 }

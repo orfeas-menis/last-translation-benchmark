@@ -168,6 +168,7 @@ export interface AdminUser {
     credit_consent: boolean;
     quota: number;
     quota_used: number;
+    review_scope: string;
 }
 
 export function getAdminUsers() {
@@ -188,6 +189,10 @@ export function adjustAdminQuota(uid: number, delta: number) {
 
 export function updateAdminRoles(uid: number, roles: string[]) {
     return apiCall<AdminUser>('POST', `api/admin/users/${uid}/roles`, { roles });
+}
+
+export function updateAdminReviewScope(uid: number, review_scope: string) {
+    return apiCall<AdminUser>('POST', `api/admin/users/${uid}/review-scope`, { review_scope });
 }
 
 export function addComment(id: number, comment: string) {

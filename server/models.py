@@ -47,3 +47,6 @@ class QuotaReq(BaseModel):
 
 class RolesReq(BaseModel):
     roles: list[str]
+
+class ReviewScopeReq(BaseModel):
+    review_scope: str
