@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
     host_public = os.getenv("HOST_PUBLIC")
     for user in await get_users():
         print(
-            f"  {user['username']:12s}  {host_public}/?user={user['username']}&token={user['magic_token']}"
+            f"  {user['username']:>20}  {host_public}/?user={user['username']}&token={user['magic_token']}"
         )
     print("=========================\n")
     yield
