@@ -168,7 +168,7 @@ $(async () => {
             }
         });
         if (ownTranslation && !translations.some(t => t.translation === ownTranslation)) {
-            translations.push({ api: 'perfect', translation: ownTranslation, verified: ownVerified ?? null });
+            translations.push({ api: 'human', translation: ownTranslation, verified: ownVerified ?? null });
         }
 
         const source_lang = String($('#src-lang').val());
@@ -245,7 +245,7 @@ $(async () => {
         $('#verify-result').text('');
 
         // Find own translation if any
-        const ownTr = sub.translations.find(t => t.api === 'perfect');
+        const ownTr = sub.translations.find(t => t.api === 'human');
         if (ownTr) {
             $('#own-translation').val(ownTr.translation);
             ownVerified = ownTr.verified;
@@ -256,7 +256,7 @@ $(async () => {
         }
 
         // Fill MT results
-        lastResults = sub.translations.filter(t => t.api !== 'perfect').map(t => ({
+        lastResults = sub.translations.filter(t => t.api !== 'human').map(t => ({
             api: t.api,
             translation: t.translation,
             error: null,
