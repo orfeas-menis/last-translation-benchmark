@@ -2,7 +2,7 @@ import './style.css';
 import $ from 'jquery';
 import {
     getToken, getUsername, getMe, getAdminUsers, deleteAdminUser,
-    rotateAdminToken, adjustAdminQuota, updateAdminRoles, renderRoleSwitcher, AdminUser,
+    rotateAdminToken, adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, renderRoleSwitcher, AdminUser,
 } from './api';
 
 import { esc, showToast, accessDenied } from './utils';
@@ -27,9 +27,10 @@ function renderTable(users: AdminUser[]): void {
         return `<tr data-uid="${u.id}">
             <td><span class="uname">${esc(u.username)}</span></td>
             <td>${rolesHtml}</td>
+            <td class="scope-cell" data-uid="${u.id}" title="Click to edit language scope">${u.review_langs && u.review_langs.length ? esc(u.review_langs.join(',')) : '<span class="muted">all</span>'}</td>
             <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
             <td>${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
-            <td>${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : '<span class="muted">—</span>'}</td>
+            <td class="email-cell">${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : '<span class="muted">—</span>'}</td>
             <td style="text-align:right;color:#64748b;white-space:nowrap">${u.quota_used} / ${u.quota}</td>
             <td>
               <div class="action-btns">
@@ -48,7 +49,7 @@ function renderTable(users: AdminUser[]): void {
     }).join('');
 
     $('#user-table').html(`<table>
-        <thead><tr><th>Username</th><th>Roles</th><th>Name</th><th>Affiliation</th><th>Email</th><th style="text-align:right">Used / Quota</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Username</th><th>Roles</th><th class="scope-cell">Scope</th><th>Name</th><th>Affiliation</th><th>Email</th><th style="text-align:right">Used / Quota</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`);
 
@@ -112,6 +113,23 @@ function renderTable(users: AdminUser[]): void {
             showToast('Quota updated');
         } catch (e) { alert(e); }
     });
+
+    $('.scope-cell').on('click', async function () {
+        const uid = $(this).data('uid');
+        const u = allUsers.find(u => u.id === uid);
+        if (!u) return;
+        const current = (u.review_langs && u.review_langs.length) ? u.review_langs.join(',') : '';
+        const input = prompt('Language scope (comma-separated, empty = all, e.g. English,Czech,German).\nIf you wish to prevent someone from reviewing, then remove the review role.', current);
+        if (input === null) return;
+        if (input.includes(', ')) { alert('Use commas without spaces (e.g. English,Czech,German).'); return; }
+        const langs = input.trim() ? input.split(',').filter(Boolean) : [];
+        try {
+            const res = await updateAdminReviewScope(uid, langs);
+            u.review_langs = res.review_langs;
+            applyFilter();
+            showToast('Language scope updated');
+        } catch (e) { alert(e); }
+    });
 }
 
 function applyFilter(): void {
@@ -134,7 +152,7 @@ $(async () => {
         adminName = user.name || user.username;
         renderRoleSwitcher(user.roles);
         if (!user.roles.includes('admin')) { accessDenied(user.roles, 'admin'); return; }
-        $('#admin-info').text(`${user.username} (Admin)`);
+        $('#admin-info').text(user.username);
         allUsers = await getAdminUsers();
         applyFilter();
     } catch { window.location.href = 'index.html'; }

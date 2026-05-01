@@ -48,7 +48,7 @@ $(async () => {
         return;
     }
 
-    $('#ann-info').text(`${currentUser.username} · Contributor`);
+    $('#ann-info').text(currentUser.username);
     renderStats(currentUser.quota_used, currentUser.quota, currentUser.total_points);
     loadMySubmissions();
     renderRules();

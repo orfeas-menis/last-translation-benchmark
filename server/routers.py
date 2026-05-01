@@ -23,6 +23,7 @@ from .models import (
     CommentReq,
     ProfileReq,
     QuotaReq,
+    ReviewScopeReq,
     RolesReq,
     ScoreReq,
     SubmissionReq,
@@ -126,6 +127,7 @@ def _admin_user_view(u: dict) -> dict:
         "credit_consent": u.get("credit_consent", False),
         "quota": u.get("quota", CONTRIBUTOR_QUOTA_DEFAULT),
         "quota_used": u.get("quota_used", 0),
+        "review_langs": u.get("review_langs", []),
     }
 
 
@@ -181,6 +183,27 @@ async def admin_update_roles(uid: int, req: RolesReq, user=Depends(get_current_u
     target["roles"] = req.roles
     await save_user(target)
     return _admin_user_view(target)
+
+
+@router.post("/api/admin/users/{uid}/review-scope")
+async def admin_update_review_scope(uid: int, req: ReviewScopeReq, user=Depends(get_current_user)):
+    require_admin(user)
+    target = await get_user_by_id(uid)
+    if target is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    target["review_langs"] = req.review_langs
+    await save_user(target)
+    return _admin_user_view(target)
+
+
+def _submission_matches_scope(submission: dict, review_langs: list[str]) -> bool:
+    if not review_langs:
+        return True
+    langs_lower = {lang.lower() for lang in review_langs}
+    return (
+        submission["source_lang"].lower() in langs_lower
+        or submission["target_lang"].lower() in langs_lower
+    )
 
 
 # --- Translate ---
@@ -364,6 +387,9 @@ async def list_submissions(user=Depends(get_current_user), mode: str = "contribu
             await db_get_submissions(),
             key=lambda s: (s["points"], s["created_at"]),
         )
+        review_langs = user.get("review_langs", [])
+        if review_langs:
+            rows = [s for s in rows if _submission_matches_scope(s, review_langs)]
     else:
         rows = sorted(
             await db_get_submissions(user_id=user["id"]),

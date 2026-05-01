@@ -22,7 +22,7 @@ $(async () => {
             accessDenied(user.roles, 'reviewer');
             return;
         }
-        $('#sen-info').text(`${user.username} · Reviewer`);
+        $('#sen-info').text(user.username);
     } catch {
         window.location.href = 'index.html';
         return;

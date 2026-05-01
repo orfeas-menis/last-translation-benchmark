@@ -171,6 +171,37 @@
     a {
       text-decoration: none;
     }
+
+    .email-cell {
+      max-width: 160px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .email-cell a {
+      color: inherit;
+    }
+
+    .scope-cell {
+      width: 100px;
+      max-width: 100px;
+      min-width: 100px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    td.scope-cell {
+      font-family: monospace;
+      font-size: 0.85em;
+      cursor: pointer;
+      color: #475569;
+    }
+
+    td.scope-cell:hover {
+      background: #f1f5f9;
+    }
   </style>
 </head>
 
@@ -184,7 +215,7 @@
     </div>
   </header>
 
-  <div class="container" style="max-width: 1200px;">
+  <div class="container" style="max-width: 1400px;">
     <div class="admin-grid">
       <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
