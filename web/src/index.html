@@ -48,6 +48,12 @@
       font-size: 0.9em;
       font-weight: 500;
     }
+
+    a {
+      text-decoration: none;
+      margin-left: 5px;
+      margin-right: 5px;
+    }
   </style>
 </head>
 
@@ -66,11 +72,15 @@
       </p>
 
       <div id="cta-info-unauth" class="cta-info">
-        To access the platform, please use the <strong>magic link</strong> provided by your administrator.
-        To get the magic link, register.
+        To access the platform, please use the <strong>magic link</strong> provided you received in your email.
+        <br>
+        <br>
+        <a href="profile.html" id="register-btn" class="btn btn-success" style="margin-right: 8px; margin-top: 20px;">📝
+          Register as Contributor</a>
       </div>
 
-      <div id="role-buttons" style="display: none; margin-top: 16px; gap: 8px; justify-content: center;">
+      <div id="role-buttons" class="cta-info"
+        style="display: none; margin-top: 16px; text-align: center; margin: auto; width: max-content;">
       </div>
 
       <div id="auth-error" class="auth-error">
@@ -81,7 +91,6 @@
 
   <div class="container" style="text-align: center; margin-top: -60px;">
     <div style="margin-bottom: 16px;">
-      <button id="register-btn" class="btn btn-success" style="margin-right: 8px;">📝 Register as Contributor</button>
       <button id="show-instructions-btn" class="btn btn-instructions">📖 Show guidelines for contributing &
         reviewing</button>
     </div>
