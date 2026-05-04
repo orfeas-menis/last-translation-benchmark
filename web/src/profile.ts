@@ -1,13 +1,13 @@
 import './style.css';
 import $ from 'jquery';
 
-import { getToken, getUsername, getMe, updateProfile, registerUser } from './api';
+import { getCookie, getMe, updateProfile, registerUser } from './api';
 import { setupInstructions } from './utils';
 
 $(async () => {
     setupInstructions('all');
     
-    const isRegistrationMode = !getToken() || !getUsername();
+    const isRegistrationMode = !getCookie('ltb_token');
 
     if (!isRegistrationMode) {
         try {
@@ -54,7 +54,7 @@ $(async () => {
             } else {
                 await updateProfile({ name, affiliation, email, credit_consent });
                 // Redirect back to main page which will route appropriately
-                window.location.href = 'index.html' + window.location.search;
+                window.location.href = 'index.html';
             }
         } catch (err) {
             $('#status-msg').removeClass('msg-ok').addClass('msg-err').text(String(err));

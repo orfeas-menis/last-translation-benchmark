@@ -48,23 +48,48 @@ export interface Submission {
     comments?: Comment[];
 }
 
-// ---------- Token helpers ----------
+// ---------- Cookie helpers ----------
 
-export function getToken(): string | null {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('token');
+function setCookie(name: string, value: string): void {
+    const maxAge = 30 * 24 * 60 * 60; // 30 days
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${maxAge}; path=/; SameSite=Strict${secure}`;
 }
 
-export function getUsername(): string | null {
+export function getCookie(name: string): string | null {
+    const match = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[1]) : null;
+}
+
+export function checkUrlAndSetCookies(): void {
     const params = new URLSearchParams(window.location.search);
-    return params.get('user');
+    const urlUser = params.get('user');
+    const urlToken = params.get('token');
+
+    if (urlUser && urlToken) {
+        setCookie('ltb_user', urlUser);
+        setCookie('ltb_token', urlToken);
+        
+        const url = new URL(window.location.href);
+        url.searchParams.delete('user');
+        url.searchParams.delete('token');
+        window.history.replaceState({}, document.title, url.toString());
+    }
+}
+
+// Run immediately on import
+checkUrlAndSetCookies();
+
+export function logout(): void {
+    const secure = window.location.protocol === 'https:' ? '; Secure' : '';
+    document.cookie = `ltb_token=; max-age=0; path=/; SameSite=Strict${secure}`;
+    document.cookie = `ltb_user=; max-age=0; path=/; SameSite=Strict${secure}`;
+    window.location.href = '/';
 }
 
 // ---------- Generic fetch ----------
 
 function apiCall<T>(method: string, url: string, data?: object): Promise<T> {
-    const token = getToken();
-    const username = getUsername();
     return new Promise<T>((resolve, reject) => {
         const settings: JQuery.AjaxSettings = {
             url,
@@ -77,12 +102,6 @@ function apiCall<T>(method: string, url: string, data?: object): Promise<T> {
                 reject(detail);
             },
         };
-        if (token && username) {
-            settings.headers = {
-                'Authorization': `Bearer ${token}`,
-                'X-User-ID': username
-            };
-        }
         if (data !== undefined) settings.data = JSON.stringify(data);
         $.ajax(settings);
     });
@@ -216,8 +235,6 @@ export function renderRoleSwitcher(roles: string[]): void {
     container.style.gap = '8px';
     container.style.marginLeft = '16px';
 
-    const search = window.location.search;
-
     if (roles.includes('contributor')) {
         const btn = document.createElement('a');
         btn.textContent = 'Contribute';
@@ -225,7 +242,7 @@ export function renderRoleSwitcher(roles: string[]): void {
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
         btn.style.textDecoration = 'none';
-        btn.href = 'contribute' + search;
+        btn.href = 'contribute';
         container.appendChild(btn);
     }
     if (roles.includes('reviewer')) {
@@ -235,7 +252,7 @@ export function renderRoleSwitcher(roles: string[]): void {
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
         btn.style.textDecoration = 'none';
-        btn.href = 'review' + search;
+        btn.href = 'review';
         container.appendChild(btn);
     }
     if (roles.includes('admin')) {
@@ -245,7 +262,7 @@ export function renderRoleSwitcher(roles: string[]): void {
         btn.style.padding = '3px 8px';
         btn.style.fontSize = '0.8em';
         btn.style.textDecoration = 'none';
-        btn.href = 'admin' + search;
+        btn.href = 'admin';
         container.appendChild(btn);
     }
     const profileBtn = document.createElement('a');
@@ -254,8 +271,16 @@ export function renderRoleSwitcher(roles: string[]): void {
     profileBtn.style.padding = '3px 8px';
     profileBtn.style.fontSize = '0.8em';
     profileBtn.style.textDecoration = 'none';
-    profileBtn.href = 'profile' + search;
+    profileBtn.href = 'profile';
     container.appendChild(profileBtn);
+
+    const logoutBtn = document.createElement('button');
+    logoutBtn.textContent = 'Logout';
+    logoutBtn.className = 'btn btn-secondary';
+    logoutBtn.style.padding = '3px 8px';
+    logoutBtn.style.fontSize = '0.8em';
+    logoutBtn.addEventListener('click', logout);
+    container.appendChild(logoutBtn);
 
     const headerActions = document.querySelector('header > div');
     if (headerActions) {
