@@ -1,5 +1,5 @@
 """
-Last Translation Benchmark — FastAPI backend
+Last Translation Benchmark - FastAPI backend
 """
 
 import logging

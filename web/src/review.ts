@@ -12,7 +12,7 @@ let allSugs: Submission[] = [];
 let curFilter = 'pending';
 
 $(async () => {
-    setupInstructions('reviewer');
+    setupInstructions('all');
     if (!getToken() || !getUsername()) { window.location.href = 'index.html'; return; }
 
     try {
