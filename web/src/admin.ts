@@ -49,18 +49,18 @@ function renderTable(users: AdminUser[]): void {
             <td class="scope-cell" data-uid="${u.id}" title="Click to edit language scope">${u.review_langs && u.review_langs.length ? esc(u.review_langs.join(',')) : '<span class="muted">all</span>'}</td>
             <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
             <td>${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
-            <td class="email-cell">${u.email ? `<a href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : '<span class="muted">—</span>'}</td>
+            <td class="email-cell"><a href="mailto:${esc(u.email)}">${esc(u.email)}</a></td>
             <td style="text-align:right">${u.quota_used} / ${u.quota}</td>
             <td style="text-align:right">${u.total_accepted} / ${u.total_submitted}</td>
             <td>${statusBadge}</td>
             <td>
               <div class="action-btns">
                 <a class="act-btn act-copy" data-uid="${u.id}" title="Login link" href="${link}">🔗</a>
-                ${u.email ? (() => {
+                ${(() => {
                 const subject = 'Your Last Translation Benchmark Login Link';
                 const body = `Dear ${u.name || u.username},\n\nThank you for your interest in Last Translation Benchmark. You can submit hard-to-translate inputs via this link (do not share with anyone):\n\n${link}\n\nPlease make sure that you read the instructions in detail.\nLet us know if you have any questions or need to increase your submission quota.\n\nOn behalf of LTB organizers,\n${adminName}`;
-                return `<a class="act-btn act-email-link" data-uid="${u.id}" title="Send magic link via email" href="mailto:${encodeURIComponent(u.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="background:#e0e7ff;color:#4338ca;text-decoration:none;">📧</a>`;
-            })() : `<button class="act-btn act-email" title="Send magic link via email" style="background:#e0e7ff;color:#4338ca;">📧</button>`}
+                return `<a class="act-btn act-email-link" data-uid="${u.id}" title="Send magic link via email" target="_blank" href="mailto:${encodeURIComponent(u.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}" style="background:#e0e7ff;color:#4338ca;text-decoration:none;">📧</a>`;
+            })()}
                 <button class="act-btn act-rotate" data-uid="${u.id}" title="Rotate magic token">🔄</button>
                 <button class="act-btn act-quota" data-uid="${u.id}" title="Adjust quota">±</button>
                 <button class="act-btn act-delete" data-uid="${u.id}" title="Remove user">✕</button>
@@ -105,9 +105,6 @@ function renderTable(users: AdminUser[]): void {
         } catch (e) { alert(e); }
     });
 
-    $('.act-email').on('click', function () {
-        alert('User does not have an email address set.');
-    });
 
     $('.act-email-link').on('click', async function () {
         const uid = $(this).data('uid');
