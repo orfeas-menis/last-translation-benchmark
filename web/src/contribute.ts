@@ -433,7 +433,7 @@ function renderMySug(s: Submission): string {
         : '';
 
     const comments = s.comments ?? [];
-    const threadHtml = renderCommentThread(comments, 'contributor');
+    const threadHtml = renderCommentThread(comments, currentUser!.username);
 
     const replyHtml = `<div class="comment-reply-row">
             <textarea id="contrib-reply-${s.id}" class="comment-input" placeholder="Add comment…" style="height: 30px; min-height: 30px"></textarea>
@@ -453,7 +453,7 @@ function renderMySug(s: Submission): string {
           </div>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button class="btn btn-secondary edit-btn" style="padding: 2px 6px; font-size: 0.75em;" data-id="${s.id}">Edit</button>
-            ${scoreBadge(s.points)}
+            ${scoreBadge(s.points, (s.comments?.length ?? 0) > 0)}
           </div>
         </div>
         ${threadHtml}

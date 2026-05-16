@@ -508,15 +508,12 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
         submission["points"] = 0
     else:
         submission["points"] = -1
-    submission["reviewer_comment"] = req.comment or ""
-
     if req.comment:
         if "comments" not in submission:
             submission["comments"] = []
         submission["comments"].append(
             {
                 "author": user["username"],
-                "role": "reviewer",
                 "text": req.comment,
                 "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
             }
@@ -540,20 +537,10 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
 
     if "comments" not in submission:
         submission["comments"] = []
-        if submission.get("reviewer_comment"):
-            submission["comments"].append(
-                {
-                    "author": "Reviewer",
-                    "role": "reviewer",
-                    "text": submission["reviewer_comment"],
-                    "timestamp": submission["created_at"],
-                }
-            )
 
     submission["comments"].append(
         {
             "author": user["username"],
-            "role": "reviewer" if is_reviewer else "contributor",
             "text": req.comment,
             "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         }
@@ -561,7 +548,6 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
 
     if is_reviewer:
         submission["points"] = -1
-        submission["reviewer_comment"] = req.comment
 
     await save_submission(submission)
     return {"ok": True}

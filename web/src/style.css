@@ -389,17 +389,6 @@ textarea {
   line-height: 1.4;
 }
 
-.comment-msg-reviewer {
-  align-self: flex-start;
-  background: #fef3c7;
-  border-left: 3px solid #f59e0b;
-}
-
-.comment-msg-contributor {
-  align-self: flex-end;
-  background: #e0f2fe;
-  border-right: 3px solid #38bdf8;
-}
 
 .comment-author {
   font-weight: 700;
@@ -408,14 +397,10 @@ textarea {
   margin-right: 6px;
 }
 
-.comment-ts {
-  font-size: 0.72em;
-  color: #94a3b8;
-}
-
 .comment-body {
   margin-top: 3px;
   word-break: break-word;
+  font-size: 0.9em;
 }
 
 
@@ -498,17 +483,6 @@ textarea {
   line-height: 1.4;
 }
 
-.comment-msg-reviewer {
-  align-self: flex-start;
-  background: #fef3c7;
-  border-left: 3px solid #f59e0b;
-}
-
-.comment-msg-contributor {
-  align-self: flex-end;
-  background: #e0f2fe;
-  border-right: 3px solid #38bdf8;
-}
 
 .comment-author {
   font-weight: 700;

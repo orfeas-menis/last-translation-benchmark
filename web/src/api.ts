@@ -23,7 +23,6 @@ export interface TranslationEntry {
 
 export interface Comment {
     author: string;
-    role: 'reviewer' | 'contributor';
     text: string;
     timestamp: string;
 }
@@ -43,7 +42,6 @@ export interface Submission {
     verification_rules: Rule[];
     translations: TranslationEntry[];
     points: number;
-    reviewer_comment: string;
     created_at: string;
     comments?: Comment[];
 }

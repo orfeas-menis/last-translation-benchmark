@@ -9,18 +9,29 @@ export function showToast(msg: string): void {
     setTimeout(() => t.removeClass('show'), 2000);
 }
 
-export function scoreBadge(p: number, comment?: string): string {
-    if (p < 0) return comment ? '<span class="badge badge-score-1">💬 Commented</span>' : '<span class="badge badge-pending">Pending</span>';
+export function scoreBadge(p: number, hasComments?: boolean): string {
+    if (p < 0) return '<span class="badge badge-pending">Pending</span>';
     return `<span class="badge badge-score-${p === 1 ? 3 : 0}">${['✗ Rejected', '✓ Accepted'][p] ?? p}</span>`;
 }
 
-export function renderCommentThread(comments: Comment[] | undefined, viewerRole: 'reviewer' | 'contributor'): string {
+function getUsernameColor(username: string): string {
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+        hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const h = hash % 360;
+    return `hsl(${h}, 70%, 90%)`;
+}
+
+
+export function renderCommentThread(comments: Comment[] | undefined, currentUsername: string): string {
     if (!comments?.length) return '';
     return `<div class="comment-thread">${comments.map(c => {
-        const cls = c.role === viewerRole ? 'comment-msg-contributor' : 'comment-msg-reviewer';
-        return `<div class="comment-msg ${cls}">
-            <span class="comment-author">${esc(c.author)}</span>
-            <span class="comment-ts">${esc(c.timestamp)}</span>
+        const isOwn = c.author === currentUsername;
+        const align = isOwn ? 'flex-end' : 'flex-start';
+        const bg = getUsernameColor(c.author);
+        return `<div class="comment-msg" style="align-self: ${align}; background: ${bg};">
+            <span class="comment-author" title="${esc(c.timestamp)}" style="cursor: help;">${esc(c.author)}</span>
             <div class="comment-body">${esc(c.text)}</div>
         </div>`;
     }).join('')}</div>`;

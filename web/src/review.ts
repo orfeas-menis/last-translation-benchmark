@@ -2,7 +2,7 @@ import './style.css';
 import $ from 'jquery';
 import {
     getMe, getCookie,
-    getSubmissions, scoreSubmission, addComment, renderRoleSwitcher,
+    getSubmissions, scoreSubmission, User, renderRoleSwitcher,
     Submission,
 } from './api';
 
@@ -10,19 +10,20 @@ import { esc as escHtml, fmtDate, scoreBadge, accessDenied, renderCommentThread,
 
 let allSugs: Submission[] = [];
 let curFilter = 'pending';
+let currentUser: User | null = null;
 
 $(async () => {
     setupInstructions('all');
     if (!getCookie('ltb_token')) { window.location.href = 'index.html'; return; }
 
     try {
-        const user = await getMe();
-        renderRoleSwitcher(user.roles);
-        if (!user.roles.includes('reviewer')) {
-            accessDenied(user.roles, 'reviewer');
+        currentUser = await getMe();
+        renderRoleSwitcher(currentUser.roles);
+        if (!currentUser.roles.includes('reviewer')) {
+            accessDenied(currentUser.roles, 'reviewer');
             return;
         }
-        $('#sen-info').text(user.username);
+        $('#sen-info').text(currentUser.username);
     } catch {
         window.location.href = 'index.html';
         return;
@@ -62,11 +63,11 @@ $(async () => {
             await scoreSubmission(id, action);
             const points = action === 'accept' ? 1 : 0;
             const sug = allSugs.find(s => s.id === id);
-            if (sug) { sug.points = points; sug.reviewer_comment = ''; }
+            if (sug) { sug.points = points; }
             const $item = $(`#sug-${id}`);
             $item.find('.score-btn').removeClass('active');
             $(this).addClass('active');
-            $item.find('.sug-meta .badge').replaceWith(scoreBadge(points, ''));
+            $item.find('.sug-meta .badge').replaceWith(scoreBadge(points, (sug?.comments?.length ?? 0) > 0));
             if (curFilter === 'pending') {
                 setTimeout(() => {
                     $item.fadeOut(250, function () {
@@ -93,13 +94,12 @@ $(async () => {
             const sug = allSugs.find(s => s.id === id);
             if (sug) {
                 sug.points = -1;
-                sug.reviewer_comment = text;
                 if (!sug.comments) sug.comments = [];
-                sug.comments.push({ author: 'You', role: 'reviewer', text, timestamp: new Date().toISOString().slice(0, 16).replace('T', ' ') });
+                sug.comments.push({ author: currentUser!.username, text, timestamp: new Date().toISOString().slice(0, 16).replace('T', ' ') });
             }
             $input.val('');
             $(`#comment-box-${id}`).hide();
-            $(`#sug-${id} .sug-meta .badge`).replaceWith(scoreBadge(-1, text));
+            $(`#sug-${id} .sug-meta .badge`).replaceWith(scoreBadge(-1, true));
             $(`#comment-thread-${id}`).html(renderCommentThreadWrap(sug?.comments ?? []));
         } catch { alert('Failed to save'); }
         $(this).prop('disabled', false).text('Send');
@@ -150,7 +150,7 @@ function renderList(): void {
 }
 
 function renderCommentThreadWrap(comments: Submission['comments']): string {
-    return renderCommentThread(comments, 'reviewer');
+    return renderCommentThread(comments, currentUser!.username);
 }
 
 function renderSource(s: Submission): string {
@@ -200,7 +200,7 @@ function renderSug(s: Submission): string {
     }).join('');
 
     return `<div class="sug-item" id="sug-${s.id}">
-        <div class="sug-meta">#${s.id} &middot; <b>${escHtml(s.username)}</b> &middot; ${s.source_lang}&rarr;${s.target_lang} &middot; ${fmtDate(s.created_at)} &middot; ${scoreBadge(s.points, s.reviewer_comment)}</div>
+        <div class="sug-meta">#${s.id} &middot; <b>${escHtml(s.username)}</b> &middot; ${s.source_lang}&rarr;${s.target_lang} &middot; ${fmtDate(s.created_at)} &middot; ${scoreBadge(s.points, (s.comments?.length ?? 0) > 0)}</div>
         <div class="sug-box" style="margin-bottom:8px"><div class="lbl">SOURCE</div>${renderSource(s)}</div>
         <div style="margin-bottom:8px">${trRows}</div>
         <div style="margin-bottom:8px">${ruleRows}</div>
