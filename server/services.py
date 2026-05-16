@@ -28,16 +28,22 @@ NAME_TO_CODE_LARA = {
 }
 
 
-def translate_google(text: str, src_lang: str, tgt_lang: str) -> str:
+def translate_google(
+    text: str, src_lang: str, tgt_lang: str, source_media: str = None
+) -> str:
     source_code = NAME_TO_CODE_GOOGLE.get(src_lang.lower(), None)
     target_code = NAME_TO_CODE_GOOGLE.get(tgt_lang.lower(), None)
-    if source_code is None or target_code is None or not text:
+    if source_code is None or target_code is None or not text or source_media:
         return None
 
     return GoogleTranslator(source=source_code, target=target_code).translate(text)
 
 
-def translate_deepl(text: str, src_lang: str, tgt_lang: str) -> str:
+def translate_deepl(
+    text: str, src_lang: str, tgt_lang: str, source_media: str = None
+) -> str:
+    if source_media:
+        return None
     DEEPL_API_KEY = get_config("DEEPL_API_KEY", "")
     if not DEEPL_API_KEY:
         raise ValueError("No DeepL API key configured")
@@ -46,21 +52,12 @@ def translate_deepl(text: str, src_lang: str, tgt_lang: str) -> str:
     ).translate(text)
 
 
-async def translate_mymemory(text: str, src_lang: str, tgt_lang: str) -> str:
-    resp = await HTTP_CLIENT.get(
-        "https://api.mymemory.translated.net/get",
-        params={"q": text, "langpair": f"{src_lang}|{tgt_lang}"},
-    )
-    data = resp.json()
-    if data.get("responseStatus") == 200:
-        return data["responseData"]["translatedText"]
-    raise Exception(data.get("responseDetails", "API returned an error"))
-
-
-async def translate_lara(text: str, src_lang: str, tgt_lang: str) -> str:
+async def translate_lara(
+    text: str, src_lang: str, tgt_lang: str, source_media: str = None
+) -> str:
     source_code = NAME_TO_CODE_LARA.get(src_lang.lower(), None)
     target_code = NAME_TO_CODE_LARA.get(tgt_lang.lower(), None)
-    if source_code is None or target_code is None or not text:
+    if source_code is None or target_code is None or not text or source_media:
         return None
 
     resp = await asyncio.to_thread(
@@ -88,14 +85,18 @@ async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
     return response.choices[0].message.content
 
 
-async def verify_llm(source_text: str, translation: str, rule: str, source_media: str = None) -> bool:
+async def verify_llm(
+    source_text: str, translation: str, rule: str, source_media: str = None
+) -> bool:
     prompt = f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nSource text: {source_text}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else."
     if source_media:
         has_audio = "audio" in source_media.split(",")[0]
         context_type = "audio" if has_audio else "image"
         prompt += f"\n\nUse the provided {context_type} as additional context."
 
-    text = await call_llm_multimodal(prompt, model="google/gemini-2.5-pro", source_media=source_media)
+    text = await call_llm_multimodal(
+        prompt, model="google/gemini-2.5-pro", source_media=source_media
+    )
     text = text.strip().lower()
     if "pass" in text and "fail" in text:
         raise ValueError(f"Invalid LLM response: {text}")
@@ -143,7 +144,11 @@ async def call_llm_multimodal(prompt: str, model: str, source_media: str = None)
 
 
 async def translate_openrouter(
-    text: str, src_lang: str, tgt_lang: str, model: str, source_media: str = None
+    text: str,
+    src_lang: str,
+    tgt_lang: str,
+    model: str,
+    source_media: str = None,
 ) -> str:
     if not source_media:
         prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
@@ -163,35 +168,3 @@ async def translate_openrouter(
         prompt = f"Translate the provide {context_type} from {src_lang} to {tgt_lang}. Output only the textual translation and nothing else."
 
     return await call_llm_multimodal(prompt, model, source_media)
-
-
-async def translate_gemini2_5flash(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None
-) -> str:
-    return await translate_openrouter(
-        text, src_lang, tgt_lang, "google/gemini-2.5-flash", source_media
-    )
-
-
-async def translate_gemma4(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None
-) -> str:
-    return await translate_openrouter(
-        text, src_lang, tgt_lang, "google/gemma-4-31b-it", source_media
-    )
-
-
-async def translate_llama4(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None
-) -> str:
-    return await translate_openrouter(
-        text, src_lang, tgt_lang, "meta-llama/llama-4-scout:nitro", source_media
-    )
-
-
-async def translate_gpt4p1nano(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None
-) -> str:
-    return await translate_openrouter(
-        text, src_lang, tgt_lang, "openai/gpt-4.1-nano", source_media
-    )

@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import secrets
 from datetime import datetime, timezone
 
@@ -30,12 +31,9 @@ from .models import (
     VerifyReq,
 )
 from .services import (
-    translate_gemini2_5flash,
-    translate_gemma4,
     translate_google,
-    translate_gpt4p1nano,
     translate_lara,
-    translate_llama4,
+    translate_openrouter,
     verify_llm,
 )
 from .utils import CONTRIBUTOR_QUOTA_DEFAULT
@@ -271,16 +269,34 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
     if quota_used >= quota:
         raise HTTPException(status_code=429, detail="Quota exceeded")
 
-    async def _run_translate(name: str, func, *args):
+    async def _run_translate(
+        name: str,
+        func,
+        text: str,
+        src_lang: str,
+        tgt_lang: str,
+        source_media: str = None,
+    ):
         try:
             if asyncio.iscoroutinefunction(func):
-                res = await func(*args)
+                res = await func(
+                    text=text,
+                    src_lang=src_lang,
+                    tgt_lang=tgt_lang,
+                    source_media=source_media,
+                )
             else:
-                res = await asyncio.to_thread(func, *args)
+                res = await asyncio.to_thread(
+                    func,
+                    text=text,
+                    src_lang=src_lang,
+                    tgt_lang=tgt_lang,
+                    source_media=source_media,
+                )
             return {"api": name, "translation": res, "error": None}
         except Exception as exc:
             # skip unsupported models
-            if str(exc).startswith("No endpoint found that support input"):
+            if str(exc).startswith("No endpoints found that support"):
                 return {"api": name, "translation": None, "error": None}
             return {"api": name, "translation": None, "error": str(exc)}
 
@@ -289,7 +305,7 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
         _run_translate("Google", translate_google, req.text, source_name, target_name),
         _run_translate(
             "Gemini 2.5 Flash",
-            translate_gemini2_5flash,
+            functools.partial(translate_openrouter, model="google/gemini-2.5-flash"),
             req.text,
             source_name,
             target_name,
@@ -297,23 +313,51 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
         ),
         _run_translate(
             "Gemma 4",
-            translate_gemma4,
+            functools.partial(translate_openrouter, model="google/gemma-4-31b-it"),
             req.text,
             source_name,
             target_name,
             req.source_media,
         ),
         _run_translate(
-            "Llama 4 Scout",
-            translate_llama4,
+            "Llama 4 Maverick",
+            functools.partial(
+                translate_openrouter, model="meta-llama/llama-4-maverick"
+            ),
             req.text,
             source_name,
             target_name,
             req.source_media,
         ),
         _run_translate(
-            "GPT-4.1 Nano",
-            translate_gpt4p1nano,
+            "GPT-5.4 Mini",
+            functools.partial(translate_openrouter, model="openai/gpt-5.4-mini"),
+            req.text,
+            source_name,
+            target_name,
+            req.source_media,
+        ),
+        _run_translate(
+            "Deepseek V4 Pro",
+            functools.partial(translate_openrouter, model="deepseek/deepseek-v4-pro"),
+            req.text,
+            source_name,
+            target_name,
+            req.source_media,
+        ),
+        _run_translate(
+            "Claude Haiku 4.5",
+            functools.partial(translate_openrouter, model="anthropic/claude-haiku-4.5"),
+            req.text,
+            source_name,
+            target_name,
+            req.source_media,
+        ),
+        _run_translate(
+            "Claude Sonnet 4.5",
+            functools.partial(
+                translate_openrouter, model="anthropic/claude-sonnet-4.5"
+            ),
             req.text,
             source_name,
             target_name,

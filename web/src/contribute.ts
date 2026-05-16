@@ -61,7 +61,7 @@ $(async () => {
             ($('#src-file')[0] as HTMLInputElement).value = '';
             lastMediaData = null;
             $('#media-preview').empty();
-            $('#add-media-btn').text('Add image/audio context');
+            $('#add-media-btn').text('Add image/audio');
         } else {
             $('#src-file').trigger("click");
         }
@@ -80,7 +80,7 @@ $(async () => {
             const mediaTag = isAudio ? `<audio class="context_audio" controls src="${dataUrl}"></audio>` : `<img class="context_image" src="${dataUrl}">`;
 
             $('#media-preview').html(mediaTag);
-            $('#add-media-btn').text('Remove audio/image context');
+            $('#add-media-btn').text('Remove audio/image');
         };
         reader.readAsDataURL(file);
     });
