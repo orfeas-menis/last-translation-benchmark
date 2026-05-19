@@ -18,6 +18,7 @@ let editingSubmissionId: number | null = null;
 let allMySubmissions: Submission[] = [];
 let lastMediaData: string | null = null;
 let rules: Rule[] = [{ value: '' }];
+let inputCorrespondsToTranslations = true;
 
 
 
@@ -53,6 +54,7 @@ $(async () => {
     renderStats(currentUser.quota_used, currentUser.quota, currentUser.total_accepted);
     loadMySubmissions();
     renderRules();
+    updateButtonStates();
 
     // Input type toggle
     $('#add-media-btn').on('click', () => {
@@ -62,6 +64,9 @@ $(async () => {
             lastMediaData = null;
             $('#media-preview').empty();
             $('#add-media-btn').text('Add image/audio');
+            inputCorrespondsToTranslations = false;
+            invalidateVerification();
+            updateButtonStates();
         } else {
             $('#src-file').trigger("click");
         }
@@ -81,6 +86,9 @@ $(async () => {
 
             $('#media-preview').html(mediaTag);
             $('#add-media-btn').text('Remove audio/image');
+            inputCorrespondsToTranslations = false;
+            invalidateVerification();
+            updateButtonStates();
         };
         reader.readAsDataURL(file);
     });
@@ -91,18 +99,37 @@ $(async () => {
         if (rules.length >= 10) return;
         rules.push({ value: '' });
         renderRules();
+        invalidateVerification();
+        updateButtonStates();
     });
 
 
     $('#rules-container').on('input', '.rule-value', function () {
         const index = $(this).closest('.rule-row').data('index');
         rules[index].value = $(this).val() as string;
+        invalidateVerification();
+        updateButtonStates();
     });
 
     $('#rules-container').on('click', '.rule-remove', function () {
         const index = $(this).closest('.rule-row').data('index');
         rules.splice(index, 1);
         renderRules();
+        invalidateVerification();
+        updateButtonStates();
+    });
+
+    $('#own-translation').on('input', () => {
+        ownVerified = null;
+        $('#own-verify-badge').empty();
+        $('#pass-count').empty();
+        updateButtonStates();
+    });
+
+    $('#src-text, #src-lang, #tgt-lang').on('input change', () => {
+        inputCorrespondsToTranslations = false;
+        invalidateVerification();
+        updateButtonStates();
     });
 
 
@@ -123,6 +150,7 @@ $(async () => {
             renderApiResults();
             lastResults.forEach(r => r.verified = null);
             ownVerified = null;
+            inputCorrespondsToTranslations = true;
             $('#pass-count').text('');
             $('#verify-result').text('');
             $('#tr-status').text('✓ Done');
@@ -131,6 +159,7 @@ $(async () => {
             $('#tr-status').text(`✗ ${err instanceof Error ? err.message : JSON.stringify(err)}`);
         } finally {
             $('#tr-btn').prop('disabled', false);
+            updateButtonStates();
         }
     });
 
@@ -148,6 +177,8 @@ $(async () => {
         if (rules.length === 0) { $('#verify-result').html('<span class="msg-err">No verification rules</span>'); return; }
         if (rules.some(r => !r.value.trim())) { $('#verify-result').html('<span class="msg-err">All rules must have content</span>'); return; }
 
+        $('#verify-btn').prop('disabled', true);
+        $('#submit-btn').prop('disabled', true);
         $('#verify-result').html('<span style="color:#64748b;font-size:0.9em">Verifying...</span>');
         try {
             const source_text = String($('#src-text').val() ?? '').trim();
@@ -183,6 +214,8 @@ $(async () => {
             $('#pass-count').html(`<span class="${cls}">${pass}/${translations.length} pass verification</span>`);
         } catch (err) {
             $('#verify-result').html(`<span class="msg-err">${escHtml(String(err))}</span>`);
+        } finally {
+            updateButtonStates();
         }
     });
 
@@ -232,6 +265,8 @@ $(async () => {
             return;
         }
 
+        $('#verify-btn').prop('disabled', true);
+        $('#submit-btn').prop('disabled', true);
         try {
             const source_media = lastMediaData ?? undefined;
             if (editingSubmissionId !== null) {
@@ -245,6 +280,8 @@ $(async () => {
             clearForm();
         } catch (err) {
             $('#submit-status').html(`<span class="msg-err">${escHtml(String(err))}</span>`);
+        } finally {
+            updateButtonStates();
         }
     });
 
@@ -317,6 +354,7 @@ $(async () => {
             error: null,
             verified: t.verified
         }));
+        inputCorrespondsToTranslations = true;
         if (lastResults.length > 0) {
             renderApiResults();
             // Show verification badges
@@ -330,6 +368,7 @@ $(async () => {
 
         $('#submit-btn').text('Update Submission');
         $('#cancel-edit-btn').show();
+        updateButtonStates();
         window.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
@@ -347,6 +386,7 @@ $(async () => {
         $('#verify-result, #own-verify-badge').html('');
         lastResults = [];
         ownVerified = null;
+        inputCorrespondsToTranslations = true;
         rules = [{ value: '' }];
         renderRules();
         $('#api-results-body').hide();
@@ -358,6 +398,7 @@ $(async () => {
 
         $('#media-preview').empty();
         $('#add-media-btn').text('Add image/audio');
+        updateButtonStates();
     }
 
 
@@ -459,4 +500,32 @@ function renderMySug(s: Submission): string {
         ${threadHtml}
         ${replyHtml}
     </div>`;
+}
+
+function invalidateVerification(): void {
+    ownVerified = null;
+    $('#own-verify-badge').empty();
+    lastResults.forEach(r => r.verified = null);
+    $('[data-idx]').html('');
+    $('#pass-count').empty();
+    $('#verify-result').empty();
+}
+
+function updateButtonStates(): void {
+    const ownTranslation = String($('#own-translation').val() ?? '').trim();
+    const hasOwnTranslation = ownTranslation !== '';
+    const hasMtTranslation = lastResults.some(r => r.translation !== null);
+
+    // Verify button: enabled if translations exist AND they correspond to the current input
+    const canVerify = (hasOwnTranslation || hasMtTranslation) && inputCorrespondsToTranslations;
+    $('#verify-btn').prop('disabled', !canVerify);
+
+    const rulesNotEmpty = rules.length > 0 && rules.every(r => r.value.trim() !== '');
+    const humanExistsAndPasses = hasOwnTranslation && ownVerified === true;
+    const mtPassCount = lastResults.filter(r => r.verified === true).length;
+    const mtPassValid = mtPassCount <= 2;
+
+    // Submit button: enabled only if all requirements pass AND translations correspond to current input
+    const allPassed = rulesNotEmpty && humanExistsAndPasses && mtPassValid && inputCorrespondsToTranslations;
+    $('#submit-btn').prop('disabled', !allPassed);
 }
