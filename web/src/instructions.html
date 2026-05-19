@@ -10,11 +10,12 @@
   <h2>Instructions for Contributors</h2>
   <p>Your goal is to find a <strong>input</strong> in any <strong>source language</strong> and <strong>target
       language</strong> where major AI translation tools (e.g. ChatGPT, Google Translate) produce an <strong>inadequate
-      translation</strong>, that can be <strong>verified with a clear rule</strong>.</p>
+      translation</strong>. You’ll then provide <strong>pass/fail rules</strong> that any accurate translation must
+    pass.</p>
   <h3>Inputs</h3>
   <ul>
-    <li><strong>Topic</strong>: There are no restrictions on what the input (text, image, video, audio) is about. For
-      example, it may be a piece of news, a social media post, website instructions.</li>
+    <li><strong>Topic</strong>: There are no restrictions on what the input (text, image, audio) is about. For example,
+      it may be a piece of news, a social media post, website instructions, etc.</li>
     <li><strong>Realism:</strong> Inputs should remain realistic, so that we are testing model failures where they
       matter.</li>
     <li><strong>Perfect translation</strong>: You should also provide a “perfect” translation, which demonstrates that
@@ -28,6 +29,9 @@
     “We wanted to start a fire so we looked for a match.”<br>- Contextualized input: “We wanted to play a game so we
     looked for a match.”</div>
   <h3>Verification rules</h3>
+  <p>Next, you’ll write verification rules that an AI will use to pass/fail translations. Your rule should be framed as
+    generally as possible in testing the observed failure rather than hyper-specifically targeting particular wrong
+    translations.</p>
   <ul>
     <li><strong>Verification rules are targeting tricky things about your input</strong>. Together, your rules should
       check for what you think and observe could go wrong with translating it. They should certainly cover the issues
@@ -35,40 +39,54 @@
       You can include a rule for something else you believe is tricky, even though the systems you tried happened to get
       it right.</li>
     <li><strong>Format</strong>: Write a short instruction for an AI judge, e.g. “Check whether the translation conveys
-      that the speaker feels no inner peace.”. The rule should clearly have a pass/fail conclusion. Alternatively, if
-      you know what you’re doing, you can use hard string-matching rules.</li>
-    <li><strong>Pass rate</strong>: At most two automatic translations can pass your verification.</li>
+      that the speaker feels no inner peace.”. The rule should clearly have a pass/fail conclusion. The verification
+      rule should be written in English regardless of the source and target languages.</li>
+    <li><strong>Pass rate</strong>: At most two automatic translations can pass your set of verification rules.</li>
     <li><strong>Atomicity of your rule</strong>: Each rule should only be checking for one conceptual issue. If you find
       yourself listing various separable conditions into a single rule, use multiple rules instead.</li>
     <li><strong>Granularity of your rule</strong>: Your verification rule should be specific enough to catch wrong
       translations but flexible enough to pass any reasonable correct phrasing.</li>
   </ul>
-  <div><strong>Example:</strong> The Marwadi phrase “जिया लागे कोनी” is mistranslated into English by translation tools
-    as “nothing else feels worth living for”, but it actually means “I am not at peace.”<br><strong>Verification
-      rule:</strong> The translation should have the meaning of not being at peace/calm.</div>
-  <div><strong>Example:</strong> The English sentence “What’s the difference between jail and prison?” is translated
-    into Czech by translation tools as “Jaký je rozdíl mezi vězením a vězením?”, which has both “jail” and “prison”
-    translated as the same word. This breaks the meaning of the sentence.<br><strong>Verification rule:</strong> The
-    translation should use two distinct words for “jail” and “prison”.</div>
+  <h3>Examples</h3>
+  <div><strong>Example:</strong> The Chinese text “小猫在地上撒娇。” is translated as “The kitten is acting coquettishly on the
+    ground.” which translates the concept of “playful cuteness” to “flirtatious cuteness”.<br><strong>Verification
+      rule:</strong> In this context, “撒娇” should be equivalent to acting cute and adorable, instead of having any
+    flirtatious or sexual sense.<br><strong>Comment</strong> CATEGORY: meaning</div>
+  <div><strong>Example:</strong> The Hindi sentence “जनाब एक होता है लापड़ और उसके ऊपर होता है झापड़” is translated
+    literally as “Sir, there is one slap and on top of that there is slap.” while it’s actually commenting about the
+    difference between two degrees of slapping, like a slap and a smack / bitch-slap.<br><strong>Verification
+      rule</strong>: The slap should not be prepositionally “above”, but rather in intensity.<br><strong>Verification
+      rule</strong>: The translations for both the slaps should be different, but close enough
+    lexically.<br><strong>Comment</strong> CATEGORY: grammar; CATEGORY: structure</div>
   <div><strong>Example:</strong> The English text “Dissatisfied with EACL paper decisions? Fret not and submit your
     paper with ARR reviews to Multilingual Multicultural Evaluation workshop at EACL.” is translated as “Unzufrieden mit
     den EACL-Papierentscheidungen? Machen Sie sich keine Sorgen und reichen Sie Ihre Arbeit mit ARR-Rezensionen beim
     Multilingual Multicultural Evaluation Workshop der EACL ein.” which literally translates “paper” as “a piece of
     paper (Papier)”.<br><strong>Verification rule:</strong> The word for “paper” should be “Artikel” or English loanword
-    “Paper” but not “Papier”.</div>
-  <h4>Step-by-step</h4>
+    “Paper” but not “Papier”.<br><strong>Comment</strong> CATEGORY: meaning</div>
+  <h3>Step-by-step</h3>
   <p>Select languages – Provide your input – Hit <strong>translate</strong> – Write verification rules – Write perfect
     translation – Hit <strong>verify</strong> – Submit</p>
+  <h3>FAQ</h3>
+  <ul>
+    <li>Q: Which languages and scripts should I use?<br>A: All languages. You can also include dialects even if they
+      don’t show up in the dropdown. Just write <code>German (Zürich)</code> or <code>Serbian (Cyrillic)</code> for
+      example. You can also just say e.g. <code>Mixed (Czech, English)</code> on the source side to indicate
+      code-switching on the input side.</li>
+    <li>Q: When can I become a co-author?<br>A: After 10 confirmed submissions.</li>
+    <li>Q: I’ve reached my quota but I want to continue providing submissions.<br>A: That’s great! Just send us an
+      email.</li>
+  </ul>
   <h2>Instructions for Reviewers</h2>
   <p>As a reviewer, your role is to assess whether a submission follows the above listed contributor rules regarding
     scope and format of input, nature of observed deficiency, and validity of the provided rules.</p>
   <ul>
-    <li><strong>Approve</strong>: the example is genuine, the mistranslation is substantive, and the verification rule
+    <li><strong>Approve</strong>: The example is genuine, the mistranslation is substantive, and the verification rule
       is correct and well-formed.</li>
-    <li><strong>Reject</strong>: the input is too easy, the translation is not meaningfully wrong, or the verification
-      rule does not work in a general case.</li>
-    <li><strong>Comment</strong>: make remarks or describe why it’s not acceptable in current form just yet. This should
-      help the contributor make better contributions in the future.</li>
+    <li><strong>Reject</strong>: The input is too easy, the translation is not meaningfully wrong, or the verification
+      rule does not work in a general case. Use the comment section to describe your reason(s).</li>
+    <li><strong>Comment</strong>: In case of rejection, make remarks or describe why it’s not acceptable in its current
+      form just yet. This should help the contributor make better contributions in the future.</li>
   </ul>
 </body>
 
