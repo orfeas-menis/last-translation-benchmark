@@ -133,8 +133,25 @@ export function verify(
     );
 }
 
-export function getSubmissions(mode: 'contributor' | 'reviewer' = 'contributor') {
-    return apiCall<Submission[]>('GET', `api/submissions?mode=${mode}`);
+export function getSubmissions(
+    mode: 'contributor' | 'reviewer' = 'contributor',
+    filters?: {
+        status?: 'pending' | 'accepted_or_rejected' | 'accepted' | 'rejected' | 'all';
+        source_lang?: string;
+        target_lang?: string;
+        username?: string;
+    },
+) {
+    const query = new URLSearchParams({ mode });
+    const status = filters?.status;
+    const sourceLang = filters?.source_lang;
+    const targetLang = filters?.target_lang;
+    const username = filters?.username;
+    if (status && status.trim() !== '') query.set('status', status);
+    if (sourceLang && sourceLang.trim() !== '') query.set('source_lang', sourceLang);
+    if (targetLang && targetLang.trim() !== '') query.set('target_lang', targetLang);
+    if (username && username.trim() !== '') query.set('username', username);
+    return apiCall<Submission[]>('GET', `api/submissions?${query.toString()}`);
 }
 
 export function createSubmission(data: {
