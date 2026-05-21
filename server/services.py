@@ -160,7 +160,7 @@ async def translate_openrouter(
     if not source_media:
         prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
         if source_instructions:
-            prompt += f"\nAdditioanl instructions for this translation are: \"{source_instructions}\""
+            prompt += f"\nAdditional instructions for this translation are: \"{source_instructions}\""
         return await call_llm(prompt, model=model)
 
     # Detect media type for prompt
@@ -177,6 +177,6 @@ async def translate_openrouter(
         prompt = f"Translate the provide {context_type} from {src_lang} to {tgt_lang}. Output only the textual translation and nothing else."
 
     if source_instructions:
-        prompt += f"\nAdditioanl instructions for this translation are: \"{source_instructions}\""
+        prompt += f"\nAdditional instructions for this translation are: \"{source_instructions}\""
 
     return await call_llm_multimodal(prompt, model, source_media)
