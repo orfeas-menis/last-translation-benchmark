@@ -3,6 +3,7 @@ import sqlite3
 import json
 import os
 import argparse
+from frozendict import frozendict
 
 args = argparse.ArgumentParser(description="Extract authors from sqlite database.")
 args.add_argument("--db", help="Path to the .sqlite file", default="data/db.sqlite")
@@ -54,11 +55,14 @@ try:
             )
 
     # Sort authors by points (desc) then name
-    authors.sort(key=lambda x: (-x["points"], x["name"].lower()))
+    authors.sort(key=lambda x: (x["points"], x["name"]), reverse=True)
 
     # Clean export format
     authors_export = [
-        {"name": a["name"], "affiliation": a["affiliation"]} for a in authors
+        frozendict({"name": a["name"], "affiliation": a["affiliation"]}) for a in authors
+    ]
+    authors_export = [
+        x for i, x in enumerate(authors_export) if x not in authors_export[:i]
     ]
 
     with open(args.output, "w") as f:
