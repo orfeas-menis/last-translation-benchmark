@@ -163,6 +163,57 @@ async def admin_users(user=Depends(get_current_user)):
     return await asyncio.gather(*[_admin_user_view(u) for u in users])
 
 
+@router.get("/api/public-dashboard")
+async def public_dashboard():
+    users = await get_users()
+    submissions = await db_get_submissions()
+    accepted_by_user: dict[int, int] = {}
+    for submission in submissions:
+        if submission.get("status") != "accept":
+            continue
+        user_id = submission.get("user_id")
+        accepted_by_user[user_id] = accepted_by_user.get(user_id, 0) + 1
+
+    users_by_id = {u["id"]: u for u in users if isinstance(u.get("id"), int)}
+    rows: list[dict] = []
+    anonymous_submissions = 0
+    anonymous_users = set()
+    anonymous_affiliations = set()
+
+    for user_id, accepted in accepted_by_user.items():
+        user = users_by_id.get(user_id)
+        if user.get("credit_consent", False):
+            rows.append(
+                {
+                    "name": user.get("name", ""),
+                    "affiliation": user.get("affiliation", ""),
+                    "accepted_submissions": accepted,
+                }
+            )
+        else:
+            anonymous_submissions += accepted
+            anonymous_users.add(user_id)
+            anonymous_affiliations.add(user.get("affiliation", ""))
+
+    if anonymous_submissions > 0:
+        rows.append(
+            {
+                "name": f"Anonymous ({len(anonymous_users)} users)",
+                "affiliation": f"Multiple affiliations ({len(anonymous_affiliations)})",
+                "accepted_submissions": anonymous_submissions,
+            }
+        )
+
+    rows.sort(
+        key=lambda row: (
+            int(row["accepted_submissions"]),
+            str(row["name"]),
+        ),
+        reverse=True
+    )
+    return rows
+
+
 @router.delete("/api/admin/users/{uid}", status_code=200)
 async def admin_delete_user(uid: int, user=Depends(get_current_user)):
     require_admin(user)
