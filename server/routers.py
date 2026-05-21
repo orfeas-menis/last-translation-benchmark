@@ -95,18 +95,28 @@ async def register_user(req: ProfileReq):
 
     users = await get_users()
 
-    # Generate unique username from email prefix
-    base_username = req.email.split("@")[0].lower()
-    base_username = "".join(c for c in base_username if c.isalnum() or c in "._-")
-    if not base_username:
-        base_username = "user"
+    # Check if email already exists
+    if any(u.get("email", "").strip().lower() == req.email for u in users):
+        raise HTTPException(status_code=400, detail="User already registered")
 
-    username = base_username
-    counter = 1
-    existing_usernames = {u["username"].lower() for u in users}
-    while username.lower() in existing_usernames:
-        username = f"{base_username}{counter}"
-        counter += 1
+    # Generate username from email prefix
+    username = req.email.split("@")[0].lower()
+    username = "".join(c for c in username if c.isalnum() or c in "._-")
+    if not username:
+        raise HTTPException(status_code=400, detail="Cannot generate username from email")
+    
+    original_username = username
+    while True:
+        print(username, [u["username"] for u in users][:10])
+        # Check if username already exists
+        if all(u["username"] != username for u in users):
+            break
+
+        if username == original_username:
+            username += "-"
+
+        # add random suffix to avoid collisions
+        username += secrets.token_hex(5)[:2]
 
     new_user = {
         "id": await next_user_id(),
