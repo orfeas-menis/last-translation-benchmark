@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import secrets
+import time
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -303,6 +304,7 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
         source_media: str = None,
         source_instructions: str = None,
     ):
+        time_start = time.time()
         try:
             if asyncio.iscoroutinefunction(func):
                 res = await func(
@@ -321,7 +323,7 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
                     source_media=source_media,
                     source_instructions=source_instructions,
                 )
-            return {"api": name, "translation": res, "error": None}
+            return {"api": name, "translation": res, "error": None, "time": round(time.time() - time_start, 1)}
         except Exception as exc:
             # skip unsupported models
             if str(exc).startswith("No endpoints found that support"):
@@ -329,8 +331,8 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
             return {"api": name, "translation": None, "error": str(exc)}
 
     tasks = [
-        _run_translate("Lara", translate_lara, req.text, source_name, target_name, source_instructions=req.source_instructions),
-        _run_translate("Google Translate", translate_google, req.text, source_name, target_name, source_instructions=req.source_instructions),
+        _run_translate("Lara", translate_lara, req.text, source_name, target_name, req.source_media, req.source_instructions),
+        _run_translate("Google Translate", translate_google, req.text, source_name, target_name, req.source_media, req.source_instructions),
         _run_translate(
             "Gemini 2.5 Flash",
             functools.partial(translate_openrouter, model="google/gemini-2.5-flash"),
@@ -391,6 +393,17 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
             "Claude Sonnet 4.5",
             functools.partial(
                 translate_openrouter, model="anthropic/claude-sonnet-4.5"
+            ),
+            req.text,
+            source_name,
+            target_name,
+            req.source_media,
+            req.source_instructions,
+        ),
+        _run_translate(
+            "Cohere Command A",
+            functools.partial(
+                translate_openrouter, model="cohere/command-a"
             ),
             req.text,
             source_name,
