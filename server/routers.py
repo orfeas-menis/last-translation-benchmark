@@ -13,6 +13,7 @@ from .db import (
     delete_user,
     get_submission_by_id,
     get_user_by_id,
+    get_user_by_username,
     get_users,
     next_submission_id,
     next_user_id,
@@ -134,24 +135,39 @@ async def register_user(req: ProfileReq):
     await save_user(new_user)
 
     # Send registration email directly
-    host_public = os.getenv("HOST_PUBLIC")
-    link = f"{host_public.rstrip('/')}/?user={username}&token={new_user['magic_token']}"
+    host_public = os.getenv("HOST_PUBLIC") or ""
+    host_url = host_public.rstrip('/')
+    link = f"{host_url}/?user={username}&token={new_user['magic_token']}"
+    unsubscribe_link = f"{host_url}/api/unsubscribe?user={username}&token={new_user['magic_token']}"
 
-    email_body = f"""Dear {req.name},<br><br>
-Thank you for registering for the Last Translation Benchmark.<br><br>
-Use this passwordless login link to access the platform and submit hard-to-translate inputs.<br>
-<a href="{link}">{link}</a><br><br>
-Please make sure that you read the instructions in detail.<br>
-Let us know if you have any questions or need to increase your submission quota.<br><br>
+    email_body = f"""Dear {req.name},
+
+Thank you for registering for the Last Translation Benchmark.
+
+Use this passwordless login link to access the platform and submit hard-to-translate inputs:
+{link}
+
+Please make sure that you read the instructions in detail.
+Let us know if you have any questions or need to increase your submission quota.
+
 Best regards, the LTB Team"""
 
     await send_email(
         to_email=req.email,
         subject="Last Translation Benchmark - Login Link",
-        body=email_body
+        body=email_body,
+        headers={"List-Unsubscribe": f"<{unsubscribe_link}>"}
     )
 
     return {"ok": True}
+
+
+@router.get("/api/unsubscribe")
+async def unsubscribe(user: str, token: str):
+    u = await get_user_by_username(user)
+    if u is None or not secrets.compare_digest(u.get("magic_token", ""), token):
+        raise HTTPException(status_code=400, detail="Invalid unsubscribe link")
+    return {"ok": True, "message": "Successfully unsubscribed"}
 
 
 async def _admin_user_view(u: dict) -> dict:

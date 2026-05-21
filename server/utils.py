@@ -62,7 +62,7 @@ async def schedule_daily_backup() -> None:
             await asyncio.sleep(60)
 
 
-async def send_email(to_email: str, subject: str, body: str) -> bool:
+async def send_email(to_email: str, subject: str, body: str, headers: dict[str, str] | None = None) -> bool:
     """Sends an email asynchronously using the SMTP configuration from config.toml."""
     def _send() -> bool:
         import smtplib
@@ -83,11 +83,15 @@ async def send_email(to_email: str, subject: str, body: str) -> bool:
             return False
         
         # Create message
-        msg = MIMEText(body, "html", "utf-8")
+        msg = MIMEText(body, "plain", "utf-8")
         msg["Subject"] = Header(subject, "utf-8")
         msg["From"] = EMAIL_SENDER
         msg["To"] = to_email
         
+        if headers:
+            for k, v in headers.items():
+                msg[k] = v
+
         # Extract domain for Message-ID
         domain = EMAIL_SENDER.split("@")[-1] if "@" in EMAIL_SENDER else "localhost"
         msg["Message-ID"] = make_msgid(domain=domain)

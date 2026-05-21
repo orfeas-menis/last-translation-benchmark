@@ -12,5 +12,5 @@ if __name__ == "__main__":
     asyncio.run(send_email(
         to_email="vilem.zouhar+ltb@gmail.com",
         subject="Last Translation Benchmark [registration]",
-        body="Hello! This is a test email sent from the automated script using server.utils. <b>Testing html?</b>"
+        body="Hello! This is a test email sent from the automated script using server.utils."
     ))
