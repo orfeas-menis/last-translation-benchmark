@@ -85,7 +85,7 @@ function renderTable(users: AdminUser[]): void {
 
     $('.act-delete').on('click', async function () {
         const uid = $(this).data('uid');
-        if (!confirm('Delete user?')) return;
+        if (!confirm(`Delete user ${uid}?`)) return;
         try {
             await deleteAdminUser(uid);
             allUsers = allUsers.filter(u => u.id !== uid);
