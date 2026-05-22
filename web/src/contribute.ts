@@ -444,7 +444,7 @@ function renderRules() {
         const $row = $(`
             <div class="rule-row" data-index="${index}" style="display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px;">
                 <button class="rule-remove btn-underlined" style="font-size: 0.85em; align-self: center;" ${disabled}>- Remove</button>
-                <textarea class="rule-value" placeholder="${escHtml(placeholder)}" style="flex: 1; height: 40px; padding: 7px 10px; border: 1px solid #d1d5db; min-height: 60px; border-radius: 5px; font-size: 0.85em; resize: vertical;">${escHtml(rule.value)}</textarea>
+                <textarea class="rule-value" placeholder="${escHtml(placeholder)}" style="flex: 1; height: 40px; padding: 7px 10px; border: none; min-height: 60px; font-size: 0.85em; resize: vertical;">${escHtml(rule.value)}</textarea>
             </div>
         `);
         $container.append($row);
@@ -507,19 +507,16 @@ function renderMySug(s: Submission): string {
     const comments = s.comments ?? [];
     const threadHtml = renderCommentThread(comments, currentUser!.username);
 
-    const replyHtml = `<div class="comment-reply-row">
-            <textarea id="contrib-reply-${s.id}" class="comment-input" placeholder="Add comment…" style="height: 30px; min-height: 30px"></textarea>
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-top:6px;">
-                <div style="display:flex; gap:8px; align-items:center;">
-                    <button class="btn btn-secondary edit-btn" style="padding: 2px 6px; font-size: 0.75em;" data-id="${s.id}">Edit</button>
-                    ${scoreBadge(s.status, (s.comments?.length ?? 0) > 0)}
-                </div>
-                <button class="contrib-send-btn score-btn" style="background:#64748b;color:#fff;margin:0" data-id="${s.id}">Reply</button>
-            </div>
+    const replyHtml = `<div class="comment-reply-row" style="display: flex; gap: 8px; align-items: center;">
+            <textarea id="contrib-reply-${s.id}" class="comment-input" placeholder="Add comment…" style="height: 30px; min-height: 30px; flex: 1;"></textarea>
+            <button class="contrib-send-btn score-btn" style="background:#64748b;color:#fff;margin:0" data-id="${s.id}">Reply</button>
            </div>`;
 
     return `<div class="sug-mini">
-        <div class="sug-mini-meta">#${s.id} &middot; ${s.source_lang}&rarr;${s.target_lang} &middot; ${fmtDate(s.created_at)}</div>
+        <div class="sug-mini-meta" style="display: flex; justify-content: space-between; align-items: center;">
+            <span>#${s.id} &middot; ${s.source_lang}&rarr;${s.target_lang} &middot; ${fmtDate(s.created_at)} &middot; ${scoreBadge(s.status, (s.comments?.length ?? 0) > 0)}</span>
+            ${s.status === 'accept' ? '' : `<button class="btn btn-secondary edit-btn" style="padding: 2px 6px; font-size: 0.75em;" data-id="${s.id}">Edit</button>`}
+        </div>
         
         <div style="margin-bottom: 8px; color: #1e293b; font-weight: 500; word-break: break-word;">
             ${mediaHtml}

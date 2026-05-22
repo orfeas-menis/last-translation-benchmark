@@ -8,38 +8,17 @@
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link href="https://fonts.googleapis.com/css2?family=Inter&display=swap" rel="stylesheet">
   <style>
-    /* ---------- two-column contributor layout ---------- */
-    #contributor-layout {
-      display: grid;
-      grid-template-columns: 1fr 450px;
-      gap: 20px;
-      align-items: start;
-    }
-
-    @media (max-width: 800px) {
-      #contributor-layout {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    #main-col .card {
-      margin-bottom: 0;
-    }
-
-    #sidebar-card {
-      height: calc(100vh - 250px);
-      overflow-y: auto;
-      position: sticky;
-      top: 20px;
-    }
 
     /* ---------- sidebar mini-submission ---------- */
     .sug-mini {
-      border: 1px solid #e5e7eb;
-      border-radius: 6px;
+      border-bottom: 1px solid #aaa;
       padding: 10px;
       margin-bottom: 8px;
       font-size: 0.85em;
+    }
+
+    .sug-mini:last-child {
+      border-bottom: none;
     }
 
     .sug-mini-meta {
@@ -79,11 +58,8 @@
   </header>
 
   <div class="container">
-    <div id="contributor-layout">
-
       <!-- ===== MAIN FORM COLUMN ===== -->
-      <div id="main-col">
-        <div class="card">
+      <div class="card">
           <h2>New Submission</h2>
           <ul style="margin-left: -20pt; color: #475569; font-size: 0.9em;">
             <li>Remember: The inputs need to be self-contained and its meaning clear.</li>
@@ -93,19 +69,19 @@
 
           <div id="lang-row">
             <div>
-              <label for="src-lang">Source Language</label>
+              <label for="src-lang">Translate from</label>
               <input type="text" id="src-lang" list="src-langs" value="English" placeholder="e.g. English, custom...">
               <datalist id="src-langs"></datalist>
             </div>
             <div>
-              <label for="tgt-lang">Target Language</label>
+              <label for="tgt-lang">Translate into</label>
               <input type="text" id="tgt-lang" list="tgt-langs" value="" placeholder="e.g. German, custom...">
               <datalist id="tgt-langs"></datalist>
             </div>
           </div>
 
           <label for="src-text">Input</label>
-          <textarea id="src-text" placeholder="Enter the source text…" style="min-height: 200px;"></textarea>
+          <textarea id="src-text" placeholder="Enter the source text…" style="min-height: 100px;"></textarea>
           <textarea id="src-instructions" placeholder="Enter additional instructions for this translation…"
             style="min-height: 80px; margin-top: 10px; display: none;"></textarea>
 
@@ -136,7 +112,7 @@
             </div>
             <!-- Own Translation -->
 
-            <div class="translation-result-row" style="margin-bottom: 12px; background: #fff; border-color: #cbd5e1;">
+            <div class="translation-result-row" style="margin-bottom: 12px; background: white;">
               <span class="api-name">Human translation</span>
               <div class="tr-display" style="flex: 1; display: flex;">
                 <textarea id="own-translation" placeholder="Type your own translation here..."
@@ -169,21 +145,16 @@
             <button class="btn btn-success" id="submit-btn" disabled>Submit Input, Translations & Rule</button>
           </div>
         </div>
-      </div>
 
       <!-- ===== SIDEBAR COLUMN ===== -->
-      <div>
-        <div id="sidebar-card" class="card">
+      <div id="sidebar-card" class="card" style="border-top: 4px solid black;">
           <h2>My Submissions</h2>
-          <div id="my-submissions">
+          <div id="my-submissions" style="max-height: 500px; overflow-y: auto; padding-right: 10px;">
             <div class="empty">No submissions yet</div>
           </div>
         </div>
-      </div>
 
-    </div>
-
-    <div id="instructions-box" class="card card-nobackground" style="border-top: 4px solid black;"></div>
+    <div id="instructions-box" class="card" style="border-top: 4px solid black;"></div>
   </div>
 </body>
 

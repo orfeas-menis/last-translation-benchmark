@@ -7,18 +7,7 @@
   <title>Last Translation Benchmark — Admin</title>
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <style>
-    .admin-grid {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      align-items: stretch;
-    }
 
-    @media (max-width: 860px) {
-      .admin-grid {
-        grid-template-columns: 1fr;
-      }
-    }
 
     .tbl-wrap {
       overflow-x: auto;
@@ -211,8 +200,7 @@
   </header>
 
   <div class="container" style="max-width: 1400px;">
-    <div class="admin-grid">
-      <div class="card card-nobackground">
+    <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0">Users</h2>
           <div style="display:flex; gap:8px;">
@@ -232,7 +220,6 @@
         </div>
         <span id="filtered-count"></span>
       </div>
-    </div>
   </div>
   <div id="toast"></div>
 </body>

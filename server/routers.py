@@ -575,6 +575,11 @@ async def update_submission(
         raise HTTPException(
             status_code=403, detail="Not authorized to update this submission"
         )
+        
+    if submission.get("status") == "accept":
+        raise HTTPException(
+            status_code=403, detail="Cannot edit an accepted submission"
+        )
 
     update: dict = {
         "source_text": req.source_text,

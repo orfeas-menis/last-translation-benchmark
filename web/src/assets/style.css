@@ -2,7 +2,7 @@
 
 body {
   font-family: "Inter", sans-serif;
-  background: #fafafa;
+  background: #f1f1f1;
   margin: 0;
   padding: 0;
   color: #334155;
@@ -52,19 +52,8 @@ header button {
 }
 
 .card {
-  background: #fff;
-  border-radius: 4px;
   padding: 24px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  border: 1px solid #f1f5f9;
-}
-
-.card-nobackground {
-  background: none;
-  box-shadow: none;
-  border: none;
-  border-radius: 0;
 }
 
 .card h2 {
@@ -97,10 +86,9 @@ select {
   width: 100%;
   box-sizing: border-box;
   padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 2px;
+  border: none;
   margin-bottom: 12px;
-  background: #fff;
+  background: white;
   font-family: inherit;
   font-size: 0.95em;
 }
@@ -138,7 +126,6 @@ textarea {
   cursor: pointer;
   font-size: 0.9em;
   font-weight: 500;
-  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .btn:hover{
@@ -171,7 +158,6 @@ textarea {
   color: inherit;
   cursor: pointer;
   display: inline-block;
-  box-shadow: none !important;
   outline: none !important;
   text-decoration: none;
   color: #64748b;
@@ -224,7 +210,7 @@ textarea {
 }
 
 .badge-pending {
-  background: #fef3c7;
+  background: #f7e9b5;
   color: #92400e;
 }
 
@@ -252,7 +238,7 @@ textarea {
 }
 
 .sug-box {
-  background: #eee9;
+  background: #eee;
   border-radius: 4px;
   padding: 8px;
   font-size: 0.88em;
@@ -280,7 +266,7 @@ textarea {
   gap: 8px;
   padding: 8px 10px;
   margin-bottom: 6px;
-  background: #eee9;
+  background: #fafafa;
 }
 
 .api-name {
@@ -306,8 +292,8 @@ textarea {
 
 .vpill {
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 6px;
+  padding: 2px 4px;
+  border-radius: 50%;
   font-size: 0.8em;
   font-weight: 700;
 }
@@ -414,8 +400,8 @@ textarea {
 .comment-reply-row .comment-input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #d1d5db;
-  border-radius: 5px;
+  border: none;
+  background: white;
   padding: 6px 8px;
   font-size: 0.88em;
   font-family: inherit;
@@ -474,7 +460,7 @@ textarea {
 
 #instructions-box>div:has(> strong:first-child) {
   margin-bottom: 5pt;
-  background-color: #eee;
+  background-color: #fafafa;
   padding: 3px;
   padding-left: 6px;
 }
