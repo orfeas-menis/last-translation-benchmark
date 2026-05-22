@@ -1,12 +1,17 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter&display=swap');
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: "Inter", sans-serif;
   background: #f1f1f1;
   margin: 0;
   padding: 0;
   color: #334155;
-  min-width: 500px;
+  min-width: 800px;
 }
 
 /* ---------- header ---------- */

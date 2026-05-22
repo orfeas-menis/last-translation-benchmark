@@ -6,7 +6,7 @@ export const fmtDate = (d: string) => (d || '').replace('T', ' ').slice(0, 16);
 
 export function renderHeaderStatus(user: { username: string, quota_used: number, quota: number, total_accepted: number }): void {
     $('#header-status').css('display', 'flex');
-    $('#quota-text').text(`Translation credits: ${user.quota_used ?? 0} / ${user.quota ?? 0}`);
+    $('#quota-text').text(`Translation credits: ${(user.quota ?? 0) - (user.quota_used ?? 0)}`);
     $('#total-points').text(user.total_accepted ?? 0);
     $('#username-info').text(user.username);
 }

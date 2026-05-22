@@ -513,9 +513,9 @@ function renderMySug(s: Submission): string {
            </div>`;
 
     return `<div class="sug-mini">
-        <div class="sug-mini-meta" style="display: flex; justify-content: space-between; align-items: center;">
+        <div class="sug-mini-meta" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
             <span>#${s.id} &middot; ${s.source_lang}&rarr;${s.target_lang} &middot; ${fmtDate(s.created_at)} &middot; ${scoreBadge(s.status, (s.comments?.length ?? 0) > 0)}</span>
-            ${s.status === 'accept' ? '' : `<button class="btn btn-secondary edit-btn" style="padding: 2px 6px; font-size: 0.75em;" data-id="${s.id}">Edit</button>`}
+            ${s.status === 'accept' ? '' : `<button class="btn-underlined edit-btn" style="text-decoration: underline;" data-id="${s.id}">Edit submission</button>`}
         </div>
         
         <div style="margin-bottom: 8px; color: #1e293b; font-weight: 500; word-break: break-word;">
