@@ -169,9 +169,19 @@ function populateFilters(): void {
     const sourceLangVal = String($('#filter-source-lang').val() ?? '');
     const targetLangVal = String($('#filter-target-lang').val() ?? '');
     const userVal = String($('#filter-user').val() ?? '');
-    const sourceLangs = [...new Set(allSugs.map(s => s.source_lang))];
-    const targetLangs = [...new Set(allSugs.map(s => s.target_lang))];
-    const users = [...new Set(allSugs.map(s => s.username))];
+
+    const getOptions = (id: string) => {
+        return $(id).find('option').map((_, el) => $(el).attr('value')).get().filter(v => v !== '');
+    };
+
+    const existingSourceLangs = getOptions('#filter-source-lang');
+    const existingTargetLangs = getOptions('#filter-target-lang');
+    const existingUsers = getOptions('#filter-user');
+
+    const sourceLangs = [...new Set([...existingSourceLangs, ...allSugs.map(s => s.source_lang)])].sort();
+    const targetLangs = [...new Set([...existingTargetLangs, ...allSugs.map(s => s.target_lang)])].sort();
+    const users = [...new Set([...existingUsers, ...allSugs.map(s => s.username)])].sort();
+
     $('#filter-source-lang').html('<option value="">All Source Languages</option>' +
         sourceLangs.map(l => `<option value="${l}"${l === sourceLangVal ? ' selected' : ''}>${escHtml(l)}</option>`).join(''));
     $('#filter-target-lang').html('<option value="">All Target Languages</option>' +
@@ -204,7 +214,7 @@ function renderSource(s: Submission): string {
 
 function renderSug(s: Submission): string {
     const scoreActions: Array<['reject' | 'accept', string, string]> = [
-        ['reject', '#ef4444', 'Reject submission'],
+        ['reject', '#ef4444', 'Return submission'],
         ['accept', '#22c55e', 'Accept submission'],
     ];
     const isOwner = s.username === currentUser!.username;
