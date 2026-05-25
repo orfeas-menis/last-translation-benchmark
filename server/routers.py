@@ -514,12 +514,17 @@ async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
                 raise HTTPException(status_code=502, detail=f"LLM API error: {exc}")
         return True
 
-    results = await asyncio.gather(
+    unique_translations = list(set(req.translations))
+    unique_results = await asyncio.gather(
         *[
             _verify_single(req.source_text, t, req.source_media)
-            for t in req.translations
+            for t in unique_translations
         ]
     )
+    
+    translation_to_result = dict(zip(unique_translations, unique_results))
+    results = [translation_to_result[t] for t in req.translations]
+    
     return {"results": results}
 
 
