@@ -245,7 +245,7 @@ $(async () => {
                 translations.push({ model: r.model, translation: r.translation, verified: r.verified ?? null });
             }
         });
-        if (ownTranslation && !translations.some(t => t.translation === ownTranslation)) {
+        if (ownTranslation) {
             translations.push({ model: 'human', translation: ownTranslation, verified: ownVerified ?? null });
         }
 
