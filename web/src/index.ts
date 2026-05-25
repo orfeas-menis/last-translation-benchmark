@@ -1,7 +1,7 @@
 import './assets/style.css';
 import $ from 'jquery';
 
-import { getCookie, getMe, logout, User } from './api';
+import { getCookie, getMe, logout, User, handleNotifications } from './api';
 import instructionsHtml from './assets/instructions.html';
 
 $(async () => {
@@ -48,4 +48,32 @@ function showRoleButtons(user: User): void {
     container.append(actions);
 
     container.css('display', 'block');
+
+    if (user.notifications.length > 0) {
+        const notifBox = $('#notifications-box');
+        notifBox.empty();
+        
+        const clearBtn = $('<button class="btn-underlined" style="font-size: 0.8em;">Clear Notifications</button>');
+        clearBtn.on('click', async () => {
+            await handleNotifications('clear');
+            notifBox.hide();
+        });
+        
+        user.notifications.reverse().forEach(n => {
+            const item = $('<div>').css({
+                padding: '10px', fontSize: '0.9em',
+                background: n.status === 'unread' ? '#ddd' : 'transparent', textAlign: 'left',
+            });
+            item.html(`<strong>${n.type}</strong>: <span style="color:#444">${n.content}</span> <small style="color:#aaa; float:right;">${n.created}</small>`);
+            notifBox.append(item);
+        });
+        notifBox.append(clearBtn);
+        
+        notifBox.show();
+
+        const hasUnread = user.notifications.some(n => n.status === 'unread');
+        if (hasUnread) {
+            handleNotifications('view').catch(console.error);
+        }
+    }
 }

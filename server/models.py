@@ -50,6 +50,7 @@ class ProfileReq(BaseModel):
     affiliation: str = Field(max_length=100)
     email: str = Field(max_length=100)
     credit_consent: bool
+    notification_consent: bool
 
 class CommentReq(BaseModel):
     comment: str = Field(max_length=1000)
@@ -62,3 +63,6 @@ class RolesReq(BaseModel):
 
 class ReviewScopeReq(BaseModel):
     review_langs: list[str]
+
+class NotificationActionReq(BaseModel):
+    action: str  # "view" | "clear"

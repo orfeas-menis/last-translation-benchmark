@@ -41,9 +41,8 @@ async def schedule_daily_backup() -> None:
             if target <= now:
                 target += datetime.timedelta(days=1)
             delay = (target - now).total_seconds()
-            hours = int(delay // 3600)
-            minutes = int((delay % 3600) // 60)
-            log(f"Next database backup scheduled in {hours} hours and {minutes} minutes (at {target.strftime('%Y-%m-%d %H:%M')})")
+            log(f"Next database backup scheduled in {(target-now).total_seconds() / 3600:.1f} hours at {target.strftime('%Y-%m-%d %H:%M')}")
+
             await asyncio.sleep(delay)
             
             # Copy database file
@@ -62,8 +61,21 @@ async def schedule_daily_backup() -> None:
             await asyncio.sleep(60)
 
 
-async def send_email(to_email: str, subject: str, body: str, headers: dict[str, str] | None = None) -> bool:
+async def send_email(to_email: str, subject: str, body: str, headers: dict[str, str] | None = None, user_obj: dict | None = None) -> bool:
     """Sends an email asynchronously using the SMTP configuration from config.toml."""
+
+    if not to_email:
+        return False
+
+    if user_obj:
+        host_public = os.getenv("HOST_PUBLIC") or ""
+        host_url = host_public.rstrip('/')
+        unsubscribe_link = f"{host_url}/api/unsubscribe?user={user_obj['username']}&token={user_obj['magic_token']}"
+        body += f"\n\n---\nTo unsubscribe from these updates, click here:\n{unsubscribe_link}\n"
+        if headers is None:
+            headers = {}
+        headers["List-Unsubscribe"] = f"<{unsubscribe_link}>"
+        
     def _send() -> bool:
         import smtplib
         from email.header import Header
@@ -112,3 +124,60 @@ async def send_email(to_email: str, subject: str, body: str, headers: dict[str, 
 
     return await asyncio.to_thread(_send)
 
+async def schedule_daily_notifications() -> None:
+    from .db import get_users, save_user
+    while True:
+        try:
+            now = datetime.datetime.now(datetime.timezone.utc)
+            target = now.replace(hour=8, minute=0, second=0, microsecond=0)
+            if target <= now:
+                target += datetime.timedelta(days=1)
+            delay = (target - now).total_seconds()
+            log(f"Next daily notifications scheduled in {(target-now).total_seconds() / 3600:.1f} hours at {target.strftime('%Y-%m-%d %H:%M')}")
+            await asyncio.sleep(delay)
+            
+            host_url = (os.getenv("HOST_PUBLIC") or "").rstrip("/")
+
+            users = await get_users()
+            for u in users:
+                if not u["notification-consent"]:
+                    continue
+                unread = [n for n in u["notifications"] if n["status"] == "unread"]
+                if not unread:
+                    continue
+                
+                accepted = [n for n in unread if n["type"] == "accepted"]
+                returned = [n for n in unread if n["type"] in ("returned", "commented")]
+
+                email_body = f"Hello {u['name']},\n\nYou have {len(unread)} unread notifications regarding your submissions on the Last Translation Benchmark:\n\n"
+                
+                if accepted:
+                    email_body += "Accepted submissions:\n"
+                    for n in accepted:
+                        email_body += f"- {n['type']} ({n['created']}) {n['content']}\n"
+                    email_body += "\n"
+                    
+                if returned:
+                    email_body += "Returned/commented submissions, please update and resubmit:\n"
+                    for n in returned:
+                        email_body += f"- {n['type']} ({n['created']}) {n['content']}\n"
+                    email_body += "\n"
+                
+                email_body += f"View them here: {host_url}\n"
+                email_body += "\nBest regards, the LTB Team"
+                
+                if await send_email(
+                    to_email=u["email"],
+                    subject="Last Translation Benchmark - Notifications",
+                    body=email_body,
+                    user_obj=u
+                ):
+                    for n in unread:
+                        n["status"] = "emailed"
+                    await save_user(u)
+                    
+        except asyncio.CancelledError:
+            raise
+        except Exception as e:
+            log(f"Error in notifications schedule loop: {e}")
+            await asyncio.sleep(60)

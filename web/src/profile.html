@@ -46,6 +46,7 @@
       width: 18px;
       height: 18px;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .check-row label {
@@ -114,9 +115,16 @@
       </div>
 
       <div class="check-row">
-        <input type="checkbox" id="credit-consent">
+        <input type="checkbox" id="credit-consent" checked>
         <label for="credit-consent">
           I wish to be credited non-anonymously in any resulting publication under the above name & affiliation.
+        </label>
+      </div>
+
+      <div class="check-row">
+        <input type="checkbox" id="notification-consent" checked>
+        <label for="notification-consent">
+          Send me updates about my submissions.
         </label>
       </div>
 

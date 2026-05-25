@@ -41,6 +41,7 @@ $(async () => {
 
     try {
         currentUser = await getMe();
+        renderHeaderStatus(currentUser);
         renderRoleSwitcher(currentUser.roles);
         if (!currentUser.roles.includes('contributor')) {
             accessDenied(currentUser.roles, 'contributor');
@@ -51,7 +52,7 @@ $(async () => {
         return;
     }
 
-    renderHeaderStatus(currentUser);
+
     loadMySubmissions();
     renderRules();
     updateButtonStates();

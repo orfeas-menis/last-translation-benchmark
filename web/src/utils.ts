@@ -1,14 +1,65 @@
 import $ from 'jquery';
-import { Comment, Submission } from './api';
+import { Comment, Submission, User, handleNotifications } from './api';
 
 export const esc = (s: string) => $('<div>').text(s).html();
 export const fmtDate = (d: string) => (d || '').replace('T', ' ').slice(0, 16);
 
-export function renderHeaderStatus(user: { username: string, quota_used: number, quota: number, total_accepted: number }): void {
+export function renderHeaderStatus(user: User): void {
     $('#header-status').css('display', 'flex');
     $('#quota-text').text(`${(user.quota ?? 0) - (user.quota_used ?? 0)} credits left`);
     $('#total-points').text(user.total_accepted ?? 0);
     $('#username-info').text(user.username);
+
+    if (user.notifications) {
+        const unreadCount = user.notifications.filter(n => n.status === 'unread').length;
+        const notifBtn = $('<button>').css({
+            background: 'black', border: 'none', cursor: 'pointer', position: 'relative', marginLeft: '10px',
+            color: 'white', width: '28px', height: '28px', fontWeight: 'bold',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none',
+        }).text(unreadCount);
+
+        const listDiv = $('<div>').css({
+            position: 'absolute', right: '-140px', top: '27px', background: 'white',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)', padding: '10px', width: '300px', display: 'none',
+            zIndex: 1000, maxHeight: '400px', overflowY: 'auto', textAlign: 'left',
+        });
+
+        const clearBtn = $('<button>').text('Clear notifications').addClass('btn-underlined').css({border: 'none', background: 'none', cursor: 'pointer', marginTop: '10px', width: '100%', textAlign: 'center', fontSize: '0.8em'})
+            .on('click', async () => {
+                await handleNotifications('clear');
+                user.notifications = [];
+                listDiv.empty();
+                notifBtn.text('0');
+                listDiv.hide();
+            });
+
+        if (user.notifications.length === 0) {
+            listDiv.append($('<div>').text('No notifications').css({color: '#999', padding: '10px', textAlign: 'center'}));
+        } else {
+            user.notifications.reverse().forEach(n => {
+                const item = $('<div>').css({
+                    padding: '8px', borderBottom: '1px solid #eee', fontSize: '0.9em',
+                    background: n.status === 'unread' ? '#f0fdf4' : 'transparent', borderRadius: '4px'
+                });
+                item.html(`<strong>${esc(n.type)}</strong> <small style="color:#aaa; font-size: 0.8em; margin-left: 6px;">${esc(fmtDate(n.created))}</small><br><span style="color:#666">${esc(n.content)}</span>`);
+                listDiv.append(item);
+            });
+            listDiv.append(clearBtn);
+        }
+
+        const container = $('<div>').css('position', 'relative').append(notifBtn).append(listDiv);
+        $('#header-status').append(container);
+
+        notifBtn.on('click', async () => {
+            listDiv.toggle();
+            if (listDiv.is(':visible') && unreadCount > 0) {
+                await handleNotifications('view');
+                notifBtn.text('0');
+                user.notifications.forEach(n => n.status = 'viewed');
+                listDiv.children().css('background', 'transparent');
+            }
+        });
+    }
 }
 
 export function showToast(msg: string): void {
@@ -39,7 +90,7 @@ export function renderCommentThread(comments: Comment[] | undefined, currentUser
         const align = isOwn ? 'flex-end' : 'flex-start';
         const bg = getUsernameColor(c.author);
         return `<div class="comment-msg" style="align-self: ${align}; background: ${bg};">
-            <span class="comment-author" title="${esc(c.timestamp)}" style="cursor: help;">${esc(c.author)}</span>
+            <span class="comment-author" title="${esc(c.created_at)}" style="cursor: help;">${esc(c.author)}</span>
             <div class="comment-body">${esc(c.text)}</div>
         </div>`;
     }).join('')}</div>`;

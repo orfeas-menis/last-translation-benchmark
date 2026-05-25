@@ -19,8 +19,8 @@ $(async () => {
 
     try {
         currentUser = await getMe();
-        renderRoleSwitcher(currentUser.roles);
         renderHeaderStatus(currentUser);
+        renderRoleSwitcher(currentUser.roles);
         if (!currentUser.roles.includes('reviewer')) {
             accessDenied(currentUser.roles, 'reviewer');
             return;
@@ -115,7 +115,7 @@ $(async () => {
             const sug = allSugs.find(s => s.id === id);
             if (sug) {
                 if (!sug.comments) sug.comments = [];
-                sug.comments.push({ author: currentUser!.username, text, timestamp: new Date().toISOString().slice(0, 16).replace('T', ' ') });
+                sug.comments.push({ author: currentUser!.username, text, created_at: new Date().toISOString().slice(0, 16).replace('T', ' ') });
             }
             $input.val('');
             if (sug) {

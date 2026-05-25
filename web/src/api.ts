@@ -2,6 +2,13 @@ import $ from 'jquery';
 
 // ---------- Types ----------
 
+export interface Notification {
+    created: string;
+    type: string;
+    status: 'unread' | 'viewed' | 'emailed';
+    content: string;
+}
+
 export interface User {
     username: string;
     roles: string[];
@@ -13,6 +20,8 @@ export interface User {
     affiliation: string;
     email: string;
     credit_consent: boolean;
+    notification_consent: boolean;
+    notifications: Notification[];
 }
 
 export interface TranslationEntry {
@@ -24,7 +33,7 @@ export interface TranslationEntry {
 export interface Comment {
     author: string;
     text: string;
-    timestamp: string;
+    created_at: string;
 }
 
 export interface Rule {
@@ -202,6 +211,7 @@ export function updateProfile(data: {
     affiliation: string;
     email: string;
     credit_consent: boolean;
+    notification_consent: boolean;
 }) {
     return apiCall<{ ok: boolean }>('PUT', 'api/profile', data);
 }
@@ -211,6 +221,7 @@ export function registerUser(data: {
     affiliation: string;
     email: string;
     credit_consent: boolean;
+    notification_consent: boolean;
 }) {
     return apiCall<{ ok: boolean }>('POST', 'api/register', data);
 }
@@ -254,6 +265,10 @@ export function updateAdminReviewScope(uid: number, review_langs: string[]) {
 
 export function addComment(id: number, comment: string) {
     return apiCall<{ ok: boolean }>('POST', `api/submissions/${id}/comment`, { comment });
+}
+
+export function handleNotifications(action: 'view' | 'clear') {
+    return apiCall<{ ok: boolean }>('POST', 'api/notifications', { action });
 }
 
 // ---------- UI helpers ----------

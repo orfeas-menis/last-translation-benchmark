@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .db import get_users, init_db
 from .routers import router
-from .utils import schedule_daily_backup
+from .utils import schedule_daily_backup, schedule_daily_notifications
 
 
 @asynccontextmanager
@@ -31,13 +31,18 @@ async def lifespan(app: FastAPI):
         )
     print("=========================\n")
     
+
+
     backup_task = asyncio.create_task(schedule_daily_backup())
+    notif_task = asyncio.create_task(schedule_daily_notifications())
     try:
         yield
     finally:
         backup_task.cancel()
+        notif_task.cancel()
         try:
             await backup_task
+            await notif_task
         except asyncio.CancelledError:
             pass
 

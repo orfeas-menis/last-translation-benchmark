@@ -25,6 +25,7 @@ from .db import (
 )
 from .models import (
     CommentReq,
+    NotificationActionReq,
     ProfileReq,
     QuotaReq,
     ReviewScopeReq,
@@ -73,6 +74,8 @@ async def me(user=Depends(get_current_user)):
         "affiliation": user.get("affiliation", ""),
         "email": user.get("email", ""),
         "credit_consent": user.get("credit_consent", False),
+        "notification_consent": user.get("notification-consent", True),
+        "notifications": user.get("notifications", []),
     }
 
 
@@ -84,6 +87,7 @@ async def update_profile(req: ProfileReq, user=Depends(get_current_user)):
             "affiliation": req.affiliation,
             "email": req.email,
             "credit_consent": req.credit_consent,
+            "notification-consent": req.notification_consent,
         }
     )
     await save_user(user)
@@ -130,6 +134,8 @@ async def register_user(req: ProfileReq):
         "affiliation": req.affiliation,
         "email": req.email,
         "credit_consent": req.credit_consent,
+        "notification-consent": req.notification_consent,
+        "notifications": [],
     }
     await save_user(new_user)
 
@@ -137,8 +143,6 @@ async def register_user(req: ProfileReq):
     host_public = os.getenv("HOST_PUBLIC") or ""
     host_url = host_public.rstrip('/')
     link = f"{host_url}/?user={username}&token={new_user['magic_token']}"
-    unsubscribe_link = f"{host_url}/api/unsubscribe?user={username}&token={new_user['magic_token']}"
-
     email_body = f"""Dear {req.name},
 
 Thank you for registering for the Last Translation Benchmark.
@@ -155,7 +159,7 @@ Best regards, the LTB Team"""
         to_email=req.email,
         subject="Last Translation Benchmark - Login Link",
         body=email_body,
-        headers={"List-Unsubscribe": f"<{unsubscribe_link}>"}
+        user_obj=new_user
     )
 
     return {"ok": True}
@@ -166,6 +170,10 @@ async def unsubscribe(user: str, token: str):
     u = await get_user_by_username(user)
     if u is None or not secrets.compare_digest(u.get("magic_token", ""), token):
         raise HTTPException(status_code=400, detail="Invalid unsubscribe link")
+    
+    u["notification-consent"] = False
+    await save_user(u)
+    
     return {"ok": True, "message": "Successfully unsubscribed"}
 
 
@@ -687,6 +695,23 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
 
+    if req.action in ("accept", "return"):
+        author = await get_user_by_id(submission["user_id"])
+        if author:
+            if "notifications" not in author:
+                author["notifications"] = []
+            prefix = submission.get("source_text", "")[:70].replace("\n", " ")
+            if not prefix and submission.get("source_media"):
+                prefix = "Media submission"
+            content = f"#{submission['id']}: {prefix}..." if len(submission.get("source_text", "")) > 40 else f"#{submission['id']}: {prefix}"
+            author["notifications"].append({
+                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "type": "accepted" if req.action == "accept" else "returned",
+                "status": "unread",
+                "content": content
+            })
+            await save_user(author)
+
     await save_submission(submission)
     return {"ok": True}
 
@@ -710,9 +735,42 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
         {
             "author": user["username"],
             "text": req.comment,
-            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
         }
     )
 
+    if not is_owner:
+        author = await get_user_by_id(submission["user_id"])
+        if author:
+            if "notifications" not in author:
+                author["notifications"] = []
+            prefix = submission.get("source_text", "")[:40]
+            if not prefix and submission.get("source_media"):
+                prefix = "Media submission"
+            content = f"#{submission['id']}: {prefix}..." if len(submission.get("source_text", "")) > 40 else f"#{submission['id']}: {prefix}"
+            author["notifications"].append({
+                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "type": "commented",
+                "status": "unread",
+                "content": content
+            })
+            await save_user(author)
+
     await save_submission(submission)
+    return {"ok": True}
+
+@router.post("/api/notifications")
+async def handle_notifications(req: NotificationActionReq, user=Depends(get_current_user)):
+    if "notifications" not in user:
+        user["notifications"] = []
+        
+    if req.action == "view":
+        for n in user["notifications"]:
+            n["status"] = "viewed"
+    elif req.action == "clear":
+        user["notifications"] = []
+    else:
+        raise HTTPException(status_code=400, detail="Invalid action")
+        
+    await save_user(user)
     return {"ok": True}

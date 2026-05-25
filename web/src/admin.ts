@@ -143,8 +143,8 @@ $(async () => {
     try {
         const user = await getMe();
         adminName = user.name || user.username;
-        renderRoleSwitcher(user.roles);
         renderHeaderStatus(user);
+        renderRoleSwitcher(user.roles);
         if (!user.roles.includes('admin')) { accessDenied(user.roles, 'admin'); return; }
         allUsers = await getAdminUsers();
         applyFilter();
