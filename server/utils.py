@@ -128,7 +128,7 @@ async def schedule_daily_notifications() -> None:
     from .db import get_users, save_user
     while True:
         try:
-            now = datetime.datetime.now(datetime.timezone.utc)
+            now = datetime.datetime.now()
             target = now.replace(hour=8, minute=0, second=0, microsecond=0)
             if target <= now:
                 target += datetime.timedelta(days=1)
