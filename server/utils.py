@@ -165,7 +165,7 @@ async def schedule_daily_notifications() -> None:
                         email_body += f"- {n['type']} ({n['created']}) {n['content']}\n"
                     email_body += "\n"
                 
-                email_body += f"View them here: {host_url}\n"
+                email_body += f"View the submissions here: {host_url}\n"
                 email_body += "\nBest regards, the LTB Team"
                 
                 if await send_email(

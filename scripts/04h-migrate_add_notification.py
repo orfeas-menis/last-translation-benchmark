@@ -2,7 +2,6 @@ import sys
 import os
 import argparse
 import asyncio
-from datetime import datetime, timezone
 
 # Add parent directory to path to import server modules
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

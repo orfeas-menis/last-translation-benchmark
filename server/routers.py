@@ -3,7 +3,7 @@ import functools
 import os
 import secrets
 import time
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -52,17 +52,6 @@ router = APIRouter()
 async def me(user=Depends(get_current_user)):
     submissions = await db_get_submissions(user_id=user["id"])
     total_accepted = sum(1 for s in submissions if s.get("status") == "accept")
-    now = datetime.now(timezone.utc)
-    last_active = user.get("last_active", "")
-    if (
-        not last_active
-        or (
-            now - datetime.fromisoformat(last_active).replace(tzinfo=timezone.utc)
-        ).total_seconds()
-        > 300
-    ):
-        user["last_active"] = now.strftime("%Y-%m-%d %H:%M:%S")
-        await save_user(user)
     return {
         "username": user["username"],
         "roles": user["roles"],
@@ -569,7 +558,7 @@ async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
         "verification_rules": [r.model_dump() for r in req.verification_rules],
         "translations": [t.model_dump() for t in req.translations],
         "status": "pending",
-        "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
     }
     await save_submission(submission)
@@ -601,7 +590,7 @@ async def update_submission(
         "verification_rules": [r.model_dump() for r in req.verification_rules],
         "translations": [t.model_dump() for t in req.translations],
         "status": "pending",
-        "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+        "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
     }
     if req.source_media is not None:
@@ -705,7 +694,7 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
                 prefix = "Media submission"
             content = f"#{submission['id']}: {prefix}..." if len(submission.get("source_text", "")) > 40 else f"#{submission['id']}: {prefix}"
             author["notifications"].append({
-                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "type": "accepted" if req.action == "accept" else "returned",
                 "status": "unread",
                 "content": content
@@ -735,7 +724,7 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
         {
             "author": user["username"],
             "text": req.comment,
-            "created_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         }
     )
 
@@ -749,7 +738,7 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
                 prefix = "Media submission"
             content = f"#{submission['id']}: {prefix}..." if len(submission.get("source_text", "")) > 40 else f"#{submission['id']}: {prefix}"
             author["notifications"].append({
-                "created": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S"),
+                "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
                 "type": "commented",
                 "status": "unread",
                 "content": content
