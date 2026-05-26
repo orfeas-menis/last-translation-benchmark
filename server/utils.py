@@ -139,6 +139,7 @@ async def schedule_daily_notifications() -> None:
             host_url = (os.getenv("HOST_PUBLIC") or "").rstrip("/")
 
             users = await get_users()
+            emails_sent = 0
             for u in users:
                 if not u["notification-consent"]:
                     continue
@@ -172,9 +173,11 @@ async def schedule_daily_notifications() -> None:
                     body=email_body,
                     user_obj=u
                 ):
+                    emails_sent += 1
                     for n in unread:
                         n["status"] = "emailed"
                     await save_user(u)
+            log(f"Daily notifications sent to {emails_sent} users.")
                     
         except asyncio.CancelledError:
             raise
