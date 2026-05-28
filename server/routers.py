@@ -213,18 +213,22 @@ async def public_dashboard():
 
     for user_id, accepted in accepted_by_user.items():
         user = users_by_id.get(user_id)
-        if user.get("credit_consent", False):
+        # We keep submissions of deleted users, so user might be None.
+        # In that case, default to anonymous (credit_consent=False).
+        credit_consent = user["credit_consent"] if user else False
+
+        if credit_consent:
             rows.append(
                 {
-                    "name": user.get("name", ""),
-                    "affiliation": user.get("affiliation", ""),
+                    "name": user["name"],
+                    "affiliation": user["affiliation"],
                     "accepted_submissions": accepted,
                 }
             )
         else:
             anonymous_submissions += accepted
             anonymous_users.add(user_id)
-            anonymous_affiliations.add(user.get("affiliation", ""))
+            anonymous_affiliations.add(user["affiliation"])
 
     if anonymous_submissions > 0:
         rows.append(
@@ -263,9 +267,9 @@ async def admin_adjust_quota(uid: int, req: QuotaReq, user=Depends(get_current_u
     target = await get_user_by_id(uid)
     if target is None:
         raise HTTPException(status_code=404, detail="User not found")
-    target["quota"] = max(0, target.get("quota", CONTRIBUTOR_QUOTA_DEFAULT) + req.delta)
+    target["quota"] = max(0, target["quota"] + req.delta)
     await save_user(target)
-    return {"quota": target["quota"], "quota_used": target.get("quota_used", 0)}
+    return {"quota": target["quota"], "quota_used": target["quota_used"]}
 
 
 @router.post("/api/admin/users/{uid}/roles")
