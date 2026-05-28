@@ -126,7 +126,7 @@ async def send_email(to_email: str, subject: str, body: str, headers: dict[str, 
     return await asyncio.to_thread(_send)
 
 async def schedule_daily_notifications() -> None:
-    from .db import get_users, save_user
+    from .db import get_user_by_id, get_users, save_user
     while True:
         try:
             now = datetime.datetime.now()
@@ -175,9 +175,12 @@ async def schedule_daily_notifications() -> None:
                     user_obj=u
                 ):
                     emails_sent += 1
-                    for n in unread:
-                        n["status"] = "emailed"
-                    await save_user(u)
+                    fresh_u = await get_user_by_id(u["id"])
+                    sent_dates = {x["created"] for x in unread}
+                    for n in fresh_u["notifications"]:
+                        if n["created"] in sent_dates and n["status"] == "unread":
+                            n["status"] = "emailed"
+                    await save_user(fresh_u)
             log(f"Daily notifications sent to {emails_sent} users.")
                     
         except asyncio.CancelledError:
