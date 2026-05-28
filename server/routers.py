@@ -9,14 +9,18 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from .auth import get_current_user, require_admin
 from .db import (
+    create_submission as db_create_submission,
+)
+from .db import (
+    create_user as db_create_user,
+)
+from .db import (
     delete_submission,
     delete_user,
     get_submission_by_id,
     get_user_by_id,
     get_user_by_username,
     get_users,
-    next_submission_id,
-    next_user_id,
     save_submission,
     save_user,
 )
@@ -119,7 +123,6 @@ async def register_user(req: ProfileReq):
         username += secrets.token_hex(5)[:2]
 
     new_user = {
-        "id": await next_user_id(),
         "username": username,
         "magic_token": secrets.token_urlsafe(24),
         "roles": ["contributor"],
@@ -134,7 +137,7 @@ async def register_user(req: ProfileReq):
         "review_langs": [],
         "last_active": "",
     }
-    await save_user(new_user)
+    await db_create_user(new_user)
 
     # Send registration email directly
     host_public = os.getenv("HOST_PUBLIC") or ""
@@ -562,9 +565,7 @@ async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
     ):
         raise HTTPException(status_code=400, detail="Field missing")
 
-    sid = await next_submission_id()
     submission = {
-        "id": sid,
         "user_id": user["id"],
         "username": user["username"],
         "source_text": req.source_text,
@@ -577,7 +578,7 @@ async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
     }
-    await save_submission(submission)
+    await db_create_submission(submission)
     return {"ok": True}
 
 

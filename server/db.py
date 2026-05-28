@@ -17,13 +17,7 @@ def _open_db():
 _TABLES = {"users", "submissions"}
 
 
-async def _next_id(table: str) -> int:
-    if table not in _TABLES:
-        raise ValueError(f"Invalid table: {table}")
-    async with _open_db() as db:
-        async with db.execute(f"SELECT MAX(id) FROM {table}") as cur:  # noqa: S608
-            row = await cur.fetchone()
-            return (row[0] or 0) + 1
+
 
 
 
@@ -64,8 +58,20 @@ async def delete_user(uid: int) -> None:
         await db.commit()
 
 
-async def next_user_id() -> int:
-    return await _next_id("users")
+async def create_user(user: dict) -> int:
+    async with _open_db() as db:
+        await db.execute("BEGIN EXCLUSIVE")
+        async with db.execute("SELECT MAX(id) FROM users") as cur:
+            row = await cur.fetchone()
+            new_id = (row[0] or 0) + 1
+            
+        user["id"] = new_id
+        await db.execute(
+            "INSERT INTO users (id, data) VALUES (?, ?)",
+            (new_id, json.dumps(user)),
+        )
+        await db.commit()
+        return new_id
 
 
 # --- Submissions ---
@@ -108,8 +114,20 @@ async def delete_submission(sid: int) -> None:
 
 
 
-async def next_submission_id() -> int:
-    return await _next_id("submissions")
+async def create_submission(submission: dict) -> int:
+    async with _open_db() as db:
+        await db.execute("BEGIN EXCLUSIVE")
+        async with db.execute("SELECT MAX(id) FROM submissions") as cur:
+            row = await cur.fetchone()
+            new_id = (row[0] or 0) + 1
+            
+        submission["id"] = new_id
+        await db.execute(
+            "INSERT INTO submissions (id, data) VALUES (?, ?)",
+            (new_id, json.dumps(submission)),
+        )
+        await db.commit()
+        return new_id
 
 
 # --- Init ---
