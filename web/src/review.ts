@@ -77,28 +77,6 @@ $(async () => {
                 $(this).addClass('active');
             }
             $item.find('.sug-meta .badge').replaceWith(scoreBadge(status, (sug?.comments?.length ?? 0) > 0));
-
-            let matchesFilter = true;
-            if (curFilter === 'pending') {
-                matchesFilter = status === 'pending';
-            } else if (curFilter === 'accepted_or_returned') {
-                matchesFilter = status === 'accept' || status === 'return';
-            } else if (curFilter === 'accepted') {
-                matchesFilter = status === 'accept';
-            } else if (curFilter === 'returned') {
-                matchesFilter = status === 'return';
-            }
-
-            if (!matchesFilter) {
-                setTimeout(() => {
-                    $item.fadeOut(250, function () {
-                        $(this).remove();
-                        if (!$('#sen-list .sug-item').length) {
-                            $('#sen-list').html('<div class="empty">No submissions here</div>');
-                        }
-                    });
-                }, 400);
-            }
         } catch { alert('Failed to save'); }
     });
 
