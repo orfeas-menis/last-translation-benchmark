@@ -2,11 +2,13 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=600;">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
   </head>
   <body>
     <h2>Instructions for Contributors</h2>
     <p>Your goal is to find a <strong>input</strong> in any <strong>source language</strong> and <strong>target language</strong> where major AI translation tools (e.g. ChatGPT, Google Translate) produce an <strong>inadequate translation</strong>. You’ll then provide <strong>pass/fail rules</strong> that any accurate translation must pass.</p>
+    <h3>Step-by-step</h3>
+    <p>Select languages – Provide your input – Write perfect translation – Hit <strong>translate</strong> – Write verification rules – Hit <strong>verify</strong> – Submit</p>
     <h3>Inputs</h3>
     <ul>
       <li><strong>Topic</strong>: There are no restrictions on what the input (text, image, audio) is about. For example, it may be a piece of news, a social media post, website instructions, etc.</li>
@@ -26,18 +28,16 @@
       <li><strong>Granularity of your rule</strong>: Your verification rule should be specific enough to catch wrong translations but flexible enough to pass any reasonable correct phrasing.</li>
     </ul>
     <h3>Examples</h3>
-    <div><strong>Example:</strong> The Chinese text <em>“小猫在地上撒娇。”</em> is translated as <em>“The kitten is acting coquettishly on the ground.”</em> which translates the concept of “playful cuteness” to “flirtatious cuteness”.<br><strong>Verification rule:</strong> In this context, “撒娇” should be equivalent to acting cute and adorable, instead of having any flirtatious or sexual sense.<br><strong>Comment</strong> CATEGORY: meaning</div>
-    <div><strong>Example:</strong> The Hindi sentence <em>“जनाब एक होता है लापड़ और उसके ऊपर होता है झापड़”</em> is translated literally as <em>“Sir, there is one slap and on top of that there is slap.”</em> while it’s actually commenting about the difference between two degrees of slapping, like a slap and a smack / bitch-slap.<br><strong>Verification rule</strong>: The slap should not be prepositionally “above”, but rather in intensity.<br><strong>Verification rule</strong>: The translations for both the slaps should be different, but close enough lexically.<br><strong>Comment</strong> CATEGORY: grammar; CATEGORY: structure</div>
-    <div><strong>Example:</strong> The English text <em>“Dissatisfied with EACL paper decisions? Fret not and submit your paper with ARR reviews to Multilingual Multicultural Evaluation workshop at EACL.”</em> is translated as <em>“Unzufrieden mit den EACL-Papierentscheidungen? Machen Sie sich keine Sorgen und reichen Sie Ihre Arbeit mit ARR-Rezensionen beim Multilingual Multicultural Evaluation Workshop der EACL ein.”</em> which literally translates <em>“paper”</em> as <em>“a piece of paper (Papier)”</em>.<br><strong>Verification rule:</strong> The word for “paper” should be “Artikel” or English loanword “Paper” but not “Papier”.<br><strong>Comment</strong> CATEGORY: meaning</div>
-    <h3>Step-by-step</h3>
-    <p>Select languages – Provide your input – Hit <strong>translate</strong> – Write verification rules – Write perfect translation – Hit <strong>verify</strong> – Submit</p>
+    <div><strong>Example:</strong> The Chinese text <em>“小猫在地上撒娇。”</em> is translated as <em>“The kitten is acting coquettishly on the ground.”</em> which translates the concept of “playful cuteness” to “flirtatious cuteness”.<br><strong>Verification rule:</strong> In this context, “撒娇” should be equivalent to acting cute and adorable, instead of having any flirtatious or sexual sense.</div>
+    <div><strong>Example:</strong> The Hindi sentence <em>“जनाब एक होता है लापड़ और उसके ऊपर होता है झापड़”</em> is translated literally as <em>“Sir, there is one slap and on top of that there is slap.”</em> while it’s actually commenting about the difference between two degrees of slapping, like a slap and a smack / bitch-slap.<br><strong>Verification rule</strong>: The slap should not be prepositionally “above”, but rather in intensity.<br><strong>Verification rule</strong>: The translations for both the slaps should be different, but close enough lexically.</div>
+    <div><strong>Example:</strong> The English text <em>“Dissatisfied with EACL paper decisions? Fret not and submit your paper with ARR reviews to Multilingual Multicultural Evaluation workshop at EACL.”</em> is translated as <em>“Unzufrieden mit den EACL-Papierentscheidungen? Machen Sie sich keine Sorgen und reichen Sie Ihre Arbeit mit ARR-Rezensionen beim Multilingual Multicultural Evaluation Workshop der EACL ein.”</em> which literally translates <em>“paper”</em> as <em>“a piece of paper (Papier)”</em>.<br><strong>Verification rule:</strong> The word for “paper” should be “Artikel” or English loanword “Paper” but not “Papier”.</div>
     <h3>Multimodal input and additional context</h3>
     <p>Beyond just text, you can also provide image, audio, or additional instructions (e.g. <em>“target style is children’s book for 8 years olds”</em>) for extra diambiguating context. If you provide image or audio context but now input text, we’ll translate the content of the image or audio itself and will not treat it as just supporting context.</p>
     <h3>FAQ</h3>
     <ul>
       <li>Q: Which languages and scripts should I use?<br>A: All languages. You can also include dialects even if they don’t show up in the dropdown. Just write <em>“German (Zürich)”</em> or <em>“Serbian (Cyrillic)”</em> for example. You can also just say e.g. <em>“Mixed (Czech, English)”</em> on the source side to indicate code-switching on the input side.</li>
-      <li>Q: When can I become a co-author?<br>A: After 10 confirmed submissions.</li>
-      <li>Q: What are translation credits? I’ve run out of them but I want to continue providing submissions.<br>A: Each time you hit the <em>“Translate by all models”</em> button, it uses one credit. You start with a limited number of credits, but if your submissions are good, we’re happy to increase your limit. Just send us an email!</li>
+      <li>Q: When can I become a co-author?<br>A: After 10 accepted submissions.</li>
+      <li>Q: What are translation credits? I’ve run out of them but I want to continue providing submissions.<br>A: Each time you hit the <em>“Translate by all models”</em> or <em>“Verify”</em> buttons, it uses one credit. You start with a limited number of credits, but if your submissions are good, we’re happy to increase your limit. Just send us an email!</li>
       <li>Q: My submission is based on some existing materials.<br>A: That’s ok, just make sure that you have the rights. Also please add this information via comments, such as <em>“Attribute: <a href="https://en.wikipedia.org/wiki/Werner_Herzog">https://en.wikipedia.org/wiki/Werner_Herzog</a>”</em></li>
     </ul>
     <h2>Instructions for Reviewers</h2>
@@ -45,7 +45,7 @@
     <ul>
       <li><strong>Approve</strong>: The example is genuine, the mistranslation is substantive, and the verification rule is correct and well-formed.</li>
       <li><strong>Return</strong>: The input is too easy, the translation is not meaningfully wrong, or the verification rule does not work in a general case. Use the comment section to describe your reason(s).</li>
-      <li><strong>Comment</strong>: In case of return, make remarks or describe why it’s not acceptable in its current form just yet. This should help the contributor make better contributions in the future.</li>
+      <li><strong>Comment</strong>: In case of a return, make remarks or describe why it’s not acceptable in its current form just yet. This should help the contributor make better contributions in the future.</li>
     </ul>
   </body>
 </html>
