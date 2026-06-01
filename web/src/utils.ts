@@ -10,7 +10,7 @@ export function renderHeaderStatus(user: User): void {
     $('#total-points').text(user.total_accepted ?? 0);
     $('#username-info').text(user.username);
 
-    if (user.notifications) {
+    if (user.notifications && $('#notif-container').length === 0) {
         const unreadCount = user.notifications.filter(n => n.status === 'unread').length;
         const notifBtn = $('<button>').css({
             background: 'black', border: 'none', cursor: 'pointer', position: 'relative', marginLeft: '10px',
@@ -47,7 +47,7 @@ export function renderHeaderStatus(user: User): void {
             listDiv.append(clearBtn);
         }
 
-        const container = $('<div>').css('position', 'relative').append(notifBtn).append(listDiv);
+        const container = $('<div>').attr('id', 'notif-container').css('position', 'relative').append(notifBtn).append(listDiv);
         $('#header-status').append(container);
 
         notifBtn.on('click', async () => {
