@@ -42,6 +42,32 @@ def translate_google(
     return GoogleTranslator(source=source_code, target=target_code).translate(text)
 
 
+async def translate_google_with_api(
+    text: str, src_lang: str, tgt_lang: str, source_media: str = None, source_instructions: str = None
+) -> str:
+    source_code = NAME_TO_CODE_GOOGLE.get(src_lang.lower(), None)
+    target_code = NAME_TO_CODE_GOOGLE.get(tgt_lang.lower(), None)
+    if source_code is None or target_code is None or not text or source_media or source_instructions:
+        return None
+
+    api_key = get_config("GOOGLE_TRANSLATE_API_KEY", "")
+    if not api_key:
+        raise ValueError("No Google Translate API key configured")
+
+    response = await HTTP_CLIENT.post(
+        "https://translation.googleapis.com/language/translate/v2",
+        data={
+            "q": text,
+            "source": source_code,
+            "target": target_code,
+            "format": "text",
+            "key": api_key,
+        },
+    )
+    response.raise_for_status()
+    return response.json()["data"]["translations"][0]["translatedText"]
+
+
 def translate_deepl(
     text: str, src_lang: str, tgt_lang: str, source_media: str = None
 ) -> str:
