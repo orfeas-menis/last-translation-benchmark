@@ -3,6 +3,7 @@ import datetime
 import os
 import shutil
 import tomllib
+from functools import wraps
 from typing import Any
 
 for config_file in ["config.toml", "config.template.toml"]:
@@ -23,6 +24,22 @@ def get_config(key: str, default: Any = "") -> Any:
 
 def log(message: str) -> None:
     print(f"[{datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}", flush=True)
+
+
+def retry_async(times: int, delay: float = 1.0):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            for attempt in range(times):
+                try:
+                    return await func(*args, **kwargs)
+                except Exception as e:
+                    if attempt == times - 1:
+                        raise e
+                    log(f"Attempt {attempt + 1} failed for {func.__name__}: {e}. Retrying...")
+                    await asyncio.sleep(delay)
+        return wrapper
+    return decorator
 
 
 CONTRIBUTOR_QUOTA_DEFAULT = get_config("CONTRIBUTOR_QUOTA_DEFAULT", 10)

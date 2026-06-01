@@ -9,7 +9,7 @@ from deep_translator import DeeplTranslator, GoogleTranslator
 from openrouter import OpenRouter
 
 from .languages import LANGUAGES
-from .utils import get_config
+from .utils import get_config, retry_async
 
 OPENROUTER_CLIENT = OpenRouter(api_key=get_config("OPENROUTER_API_KEY", ""))
 
@@ -142,6 +142,7 @@ async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
     return response.choices[0].message.content
 
 
+@retry_async(times=2)
 async def verify_llm(
     source_text: str, translation: str, rule: str, source_media: str = None
 ) -> bool:
