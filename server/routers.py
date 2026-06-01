@@ -526,7 +526,7 @@ async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
     ) -> bool:
         for rule in req.verification_rules:
             try:
-                res = await verify_llm(req.source_text, translation, rule.value)
+                res = await verify_llm(source_text, translation, rule.value, source_media)
                 if not res:
                     return False
             except Exception as exc:

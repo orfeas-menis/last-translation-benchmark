@@ -145,10 +145,11 @@ async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
 async def verify_llm(
     source_text: str, translation: str, rule: str, source_media: str = None
 ) -> bool:
-    prompt = f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nSource text: {source_text}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else."
+    if not source_text and source_media:
+        source_text = "(attached)"
+    prompt = f"Your goal is to verify whether a translation fulfills a criterion.\n\nCriterion: {rule}\n\nInput: {source_text}\n\nTranslation to verify: {translation}\n\nOutput only pass or fail and nothing else."
     if source_media:
-        has_audio = "audio" in source_media.split(",")[0]
-        context_type = "audio" if has_audio else "image"
+        context_type = "audio" if ("audio" in source_media.split(",")[0]) else "image"
         prompt += f"\n\nUse the provided {context_type} as additional context."
 
     text = await call_llm_multimodal(
@@ -156,11 +157,13 @@ async def verify_llm(
     )
     if text is None:
         raise ValueError("No response from LLM. Try again later.")
-    text = text.strip().lower()
-    if "pass" in text and "fail" in text:
-        raise ValueError(f"Invalid LLM response: {text}")
+    text_clean = text.strip().lower().strip(' \t\n\r.,!?"\'*')
+    if text_clean == "pass":
+        return True
+    elif text_clean == "fail":
+        return False
     else:
-        return "pass" in text
+        raise ValueError(f"Invalid LLM response: {text}")
 
 
 async def call_llm_multimodal(prompt: str, model: str, source_media: str = None) -> str:
