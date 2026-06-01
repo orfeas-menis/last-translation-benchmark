@@ -54,6 +54,9 @@ $(async () => {
 
 
     loadMySubmissions();
+    $('#filter-pending, #filter-returned, #filter-accepted').on('change', () => {
+        renderFilteredSubmissions();
+    });
     renderRules();
     updateButtonStates();
 
@@ -481,13 +484,28 @@ async function loadMySubmissions(): Promise<void> {
     try {
         const sugs = await getSubmissions('contributor');
         allMySubmissions = sugs;
-        const $el = $('#my-submissions');
-        if (sugs.length == 0) {
-            $el.html('<div class="empty">No submissions yet</div>');
-            return;
-        }
-        $el.html(sugs.map(renderMySug).join(''));
+        renderFilteredSubmissions();
     } catch { /* ignore */ }
+}
+
+function renderFilteredSubmissions(): void {
+    const showPending = $('#filter-pending').prop('checked');
+    const showReturned = $('#filter-returned').prop('checked');
+    const showAccepted = $('#filter-accepted').prop('checked');
+
+    const filtered = allMySubmissions.filter(s => {
+        if (s.status === 'pending' && showPending) return true;
+        if (s.status === 'return' && showReturned) return true;
+        if (s.status === 'accept' && showAccepted) return true;
+        return false;
+    });
+
+    const $el = $('#my-submissions');
+    if (filtered.length == 0) {
+        $el.html('<div class="empty">No submissions yet</div>');
+        return;
+    }
+    $el.html(filtered.map(renderMySug).join(''));
 }
 
 function renderMySug(s: Submission): string {
