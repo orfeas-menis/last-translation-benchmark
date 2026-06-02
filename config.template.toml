@@ -1,8 +1,6 @@
 # last-translation-benchmark configuration file
 
-OPENAI_API_KEY = ""
 DEEPL_API_KEY = ""
-LIBRE_API_KEY = ""
 LIBRE_URL = ""
 OPENROUTER_API_KEY = ""
 LARA_API_ID = ""

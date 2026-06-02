@@ -42,9 +42,8 @@ def retry_async(times: int, delay: float = 1.0):
     return decorator
 
 
-CONTRIBUTOR_QUOTA_DEFAULT = get_config("CONTRIBUTOR_QUOTA_DEFAULT", 10)
+CONTRIBUTOR_QUOTA_DEFAULT = get_config("CONTRIBUTOR_QUOTA_DEFAULT")
 DB_PATH = get_config("DB_PATH", "data/db.sqlite")
-OPENAI_API_KEY = get_config("OPENAI_API_KEY", "")
 EMAIL_SENDER = get_config("EMAIL_SENDER", "")
 EMAIL_PASSWORD = get_config("EMAIL_PASSWORD", "")
 EMAIL_SMTP_SERVER_PORT = get_config("EMAIL_SMTP_SERVER_PORT", None)

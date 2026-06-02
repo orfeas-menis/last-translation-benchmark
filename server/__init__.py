@@ -67,7 +67,7 @@ async def custom_logging(request: Request, call_next):
     response = await call_next(request)
 
     # mask all common file requests and /api/me
-    if request.url.path.endswith((".css", ".js", ".svg", ".png", ".json")) or request.url.path == "/api/me":
+    if request.url.path.endswith((".css", ".js", ".svg", ".png", ".json", ".ico")) or request.url.path == "/api/me":
         return response
 
     print(
@@ -122,6 +122,12 @@ async def serve_profile():
 @app.get("/dashboard")
 async def serve_dashboard():
     return FileResponse(_STATIC_DIR + "/dashboard.html")
+
+
+# redirect favicon.ico to assets/favicon.svg to avoid 404 errors in logs
+@app.get("/favicon.ico")
+async def serve_favicon():
+    return FileResponse(_STATIC_DIR + "/assets/favicon.svg")
 
 
 # ---------------------------------------------------------------------------
