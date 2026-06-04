@@ -32,22 +32,42 @@ NAME_TO_CODE_LARA = {
 
 
 def translate_google(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None, source_instructions: str = None
-) -> str:
+    text: str,
+    src_lang: str,
+    tgt_lang: str,
+    source_media: str | None = None,
+    source_instructions: str | None = None,
+) -> str| None:
     source_code = NAME_TO_CODE_GOOGLE.get(src_lang.lower(), None)
     target_code = NAME_TO_CODE_GOOGLE.get(tgt_lang.lower(), None)
-    if source_code is None or target_code is None or not text or source_media or source_instructions:
+    if (
+        source_code is None
+        or target_code is None
+        or not text
+        or source_media
+        or source_instructions
+    ):
         return None
 
     return GoogleTranslator(source=source_code, target=target_code).translate(text)
 
 
 async def translate_google_with_api(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None, source_instructions: str = None
-) -> str:
+    text: str,
+    src_lang: str,
+    tgt_lang: str,
+    source_media: str | None = None,
+    source_instructions: str | None = None,
+) -> str | None:
     source_code = NAME_TO_CODE_GOOGLE.get(src_lang.lower(), None)
     target_code = NAME_TO_CODE_GOOGLE.get(tgt_lang.lower(), None)
-    if source_code is None or target_code is None or not text or source_media or source_instructions:
+    if (
+        source_code is None
+        or target_code is None
+        or not text
+        or source_media
+        or source_instructions
+    ):
         return None
 
     api_key = get_config("GOOGLE_TRANSLATE_API_KEY", "")
@@ -69,8 +89,8 @@ async def translate_google_with_api(
 
 
 def translate_deepl(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None
-) -> str:
+    text: str, src_lang: str, tgt_lang: str, source_media: str | None = None
+) -> str | None:
     if source_media:
         return None
     DEEPL_API_KEY = get_config("DEEPL_API_KEY", "")
@@ -82,8 +102,12 @@ def translate_deepl(
 
 
 async def translate_lara(
-    text: str, src_lang: str, tgt_lang: str, source_media: str = None, source_instructions: str = None
-) -> str:
+    text: str,
+    src_lang: str,
+    tgt_lang: str,
+    source_media: str | None = None,
+    source_instructions: str | None = None,
+) -> str | None:
     source_code = NAME_TO_CODE_LARA.get(src_lang.lower(), None)
     target_code = NAME_TO_CODE_LARA.get(tgt_lang.lower(), None)
     if source_code is None or target_code is None:
@@ -99,7 +123,9 @@ async def translate_lara(
             if text or source_instructions:
                 return None
 
-            with tempfile.NamedTemporaryFile(suffix=mimetypes.guess_extension(mime) or ".png") as f:
+            with tempfile.NamedTemporaryFile(
+                suffix=mimetypes.guess_extension(mime) or ".png"
+            ) as f:
                 f.write(base64.b64decode(base64_data))
                 f.flush()
                 temp_path = f.name
@@ -112,7 +138,7 @@ async def translate_lara(
                     )
                 )
                 return "\n".join(p.translation for p in resp.paragraphs)
-        
+
     if not text:
         return None
 
@@ -121,10 +147,10 @@ async def translate_lara(
             text=text,
             source=source_code,
             target=target_code,
-            instructions=[source_instructions] if source_instructions else None
+            instructions=[source_instructions] if source_instructions else None,  # type: ignore
         )
     )
-    return resp.translation
+    return resp.translation # type: ignore
 
 
 async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
@@ -139,12 +165,12 @@ async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
         ],
         seed=0,
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content  # type: ignore
 
 
 @retry_async(times=2)
 async def verify_llm(
-    source_text: str, translation: str, rule: str, source_media: str = None
+    source_text: str, translation: str, rule: str, source_media: str | None = None
 ) -> bool:
     if not source_text and source_media:
         source_text = "(attached)"
@@ -158,7 +184,7 @@ async def verify_llm(
     )
     if text is None:
         raise ValueError("No response from LLM. Try again later.")
-    text_clean = text.strip().lower().strip(' \t\n\r.,!?"\'*')
+    text_clean = text.strip().lower().strip(" \t\n\r.,!?\"'*")
     if text_clean == "pass":
         return True
     elif text_clean == "fail":
@@ -167,7 +193,9 @@ async def verify_llm(
         raise ValueError(f"Invalid LLM response: {text}")
 
 
-async def call_llm_multimodal(prompt: str, model: str, source_media: str = None) -> str:
+async def call_llm_multimodal(
+    prompt: str, model: str, source_media: str | None = None
+) -> str:
     if not source_media:
         return await call_llm(prompt, model=model)
 
@@ -183,7 +211,7 @@ async def call_llm_multimodal(prompt: str, model: str, source_media: str = None)
     if len(base64_data) > 1024 * 1024:
         raise ValueError("Media data too large (max 1MB)")
 
-    content = [{"type": "text", "text": prompt}]
+    content: list = [{"type": "text", "text": prompt}]
     if has_audio:
         content.append(
             {
@@ -203,7 +231,7 @@ async def call_llm_multimodal(prompt: str, model: str, source_media: str = None)
         model=model,
         messages=[{"role": "user", "content": content}],
     )
-    return response.choices[0].message.content
+    return response.choices[0].message.content # type: ignore
 
 
 async def translate_openrouter(
@@ -211,13 +239,13 @@ async def translate_openrouter(
     src_lang: str,
     tgt_lang: str,
     model: str,
-    source_media: str = None,
-    source_instructions: str = None,
+    source_media: str| None = None,
+    source_instructions: str| None = None,
 ) -> str:
     if not source_media:
         prompt = f"Translate the following text from {src_lang} to {tgt_lang}. Output only the translation and nothing else:\n{text}"
         if source_instructions:
-            prompt += f"\nAdditional instructions for this translation are: \"{source_instructions}\""
+            prompt += f'\nAdditional instructions for this translation are: "{source_instructions}"'
         return await call_llm(prompt, model=model)
 
     # Detect media type for prompt
@@ -234,6 +262,6 @@ async def translate_openrouter(
         prompt = f"Translate the provide {context_type} from {src_lang} to {tgt_lang}. Output only the textual translation and nothing else."
 
     if source_instructions:
-        prompt += f"\nAdditional instructions for this translation are: \"{source_instructions}\""
+        prompt += f'\nAdditional instructions for this translation are: "{source_instructions}"'
 
     return await call_llm_multimodal(prompt, model, source_media)

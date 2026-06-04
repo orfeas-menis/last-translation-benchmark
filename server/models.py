@@ -5,8 +5,8 @@ from pydantic import BaseModel, Field
 field_source_text = Field(max_length=5000)
 field_source_lang = Field(max_length=50)
 field_target_lang = Field(max_length=50)
-field_source_instructions = Field(default=None, optional=True, max_length=5000)
-field_source_media = Field(default=None, optional=True, max_length=1500000)
+field_source_instructions = Field(default=None, optional=True, max_length=5000) # type: ignore
+field_source_media = Field(default=None, optional=True, max_length=1500000) # type: ignore
 
 class TranslateReq(BaseModel):
     text: str = field_source_text 

@@ -113,7 +113,7 @@ async def send_email(to_email: str, subject: str, body: str, headers: dict[str, 
         
         # Create message
         msg = MIMEText(body, "plain", "utf-8")
-        msg["Subject"] = Header(subject, "utf-8")
+        msg["Subject"] = Header(subject, "utf-8") # type: ignore
         msg["From"] = EMAIL_SENDER
         msg["To"] = to_email
         
@@ -192,6 +192,8 @@ async def schedule_daily_notifications() -> None:
                 ):
                     emails_sent += 1
                     fresh_u = await get_user_by_id(u["id"])
+                    if not fresh_u:
+                        continue
                     sent_dates = {x["created"] for x in unread}
                     for n in fresh_u["notifications"]:
                         if n["created"] in sent_dates and n["status"] == "unread":

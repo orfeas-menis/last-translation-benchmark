@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect
 import os
 import secrets
 import time
@@ -79,7 +80,11 @@ async def update_profile(req: ProfileReq, user=Depends(get_current_user)):
     new_email = req.email.strip().lower()
     if new_email != user["email"].strip().lower():
         users = await get_users()
-        if any(u["email"].strip().lower() == new_email for u in users if u["id"] != user["id"]):
+        if any(
+            u["email"].strip().lower() == new_email
+            for u in users
+            if u["id"] != user["id"]
+        ):
             raise HTTPException(status_code=400, detail="Email already taken")
 
     user.update(
@@ -110,8 +115,10 @@ async def register_user(req: ProfileReq):
     username = req.email.split("@")[0].lower()
     username = "".join(c for c in username if c.isalnum() or c in "._-")
     if not username:
-        raise HTTPException(status_code=400, detail="Cannot generate username from email")
-    
+        raise HTTPException(
+            status_code=400, detail="Cannot generate username from email"
+        )
+
     original_username = username
     while True:
         # Check if username already exists
@@ -143,7 +150,7 @@ async def register_user(req: ProfileReq):
 
     # Send registration email directly
     host_public = os.getenv("HOST_PUBLIC") or ""
-    host_url = host_public.rstrip('/')
+    host_url = host_public.rstrip("/")
     link = f"{host_url}/?user={username}&token={new_user['magic_token']}"
     email_body = f"""Dear {req.name},
 
@@ -161,7 +168,7 @@ Best regards, the LTB Team"""
         to_email=req.email,
         subject="Last Translation Benchmark - Login Link",
         body=email_body,
-        user_obj=new_user
+        user_obj=new_user,
     )
 
     return {"ok": True}
@@ -172,10 +179,10 @@ async def unsubscribe(user: str, token: str):
     u = await get_user_by_username(user)
     if u is None or not secrets.compare_digest(u["magic_token"], token):
         raise HTTPException(status_code=400, detail="Invalid unsubscribe link")
-    
+
     u["notification_consent"] = False
     await save_user(u)
-    
+
     return {"ok": True, "message": "Successfully unsubscribed"}
 
 
@@ -230,7 +237,7 @@ async def public_dashboard():
         # In that case, default to anonymous (credit_consent=False).
         credit_consent = user["credit_consent"] if user else False
 
-        if credit_consent:
+        if credit_consent and user:
             rows.append(
                 {
                     "name": user["name"],
@@ -258,7 +265,7 @@ async def public_dashboard():
             int(row["accepted_submissions"]),
             str(row["name"]),
         ),
-        reverse=True
+        reverse=True,
     )
     return rows
 
@@ -314,13 +321,14 @@ async def admin_update_review_scope(
     return await _admin_user_view(target)
 
 
-def _submission_matches_scope(submission: dict, review_langs: list[str]) -> bool:
+def _submission_matches_scope(submission: dict, review_langs: set[str]) -> bool:
     if not review_langs:
         return True
     langs_lower = {lang.lower() for lang in review_langs}
-    return (
-        submission["source_lang"].lower() in langs_lower
-        or submission["target_lang"].lower() in langs_lower
+    source_lang = submission["source_lang"].lower()
+    target_lang = submission["target_lang"].lower()
+    return any(source_lang in lang or lang in source_lang for lang in langs_lower) or any(
+        target_lang in lang or lang in target_lang for lang in langs_lower
     )
 
 
@@ -387,12 +395,12 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
         text: str,
         src_lang: str,
         tgt_lang: str,
-        source_media: str = None,
-        source_instructions: str = None,
+        source_media: str | None = None,
+        source_instructions: str | None = None,
     ):
         time_start = time.time()
         try:
-            if asyncio.iscoroutinefunction(func):
+            if inspect.iscoroutinefunction(func):
                 res = await func(
                     text=text,
                     src_lang=src_lang,
@@ -409,7 +417,12 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
                     source_media=source_media,
                     source_instructions=source_instructions,
                 )
-            return {"model": name, "translation": res, "error": None, "time": round(time.time() - time_start, 1)}
+            return {
+                "model": name,
+                "translation": res,
+                "error": None,
+                "time": round(time.time() - time_start, 1),
+            }
         except Exception as exc:
             # skip unsupported models
             if str(exc).startswith("No endpoints found that support"):
@@ -417,8 +430,24 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
             return {"model": name, "translation": None, "error": str(exc)}
 
     tasks = [
-        _run_translate("Lara", translate_lara, req.text, source_name, target_name, req.source_media, req.source_instructions),
-        _run_translate("Google Translate", translate_google, req.text, source_name, target_name, req.source_media, req.source_instructions),
+        _run_translate(
+            "Lara",
+            translate_lara,
+            req.text,
+            source_name,
+            target_name,
+            req.source_media,
+            req.source_instructions,
+        ),
+        _run_translate(
+            "Google Translate",
+            translate_google,
+            req.text,
+            source_name,
+            target_name,
+            req.source_media,
+            req.source_instructions,
+        ),
         _run_translate(
             "Gemini 2.5 Flash",
             functools.partial(translate_openrouter, model="google/gemini-2.5-flash"),
@@ -488,9 +517,7 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
         ),
         _run_translate(
             "Cohere Command A",
-            functools.partial(
-                translate_openrouter, model="cohere/command-a"
-            ),
+            functools.partial(translate_openrouter, model="cohere/command-a"),
             req.text,
             source_name,
             target_name,
@@ -522,11 +549,13 @@ async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
     await save_user(user)
 
     async def _verify_single(
-        source_text: str, translation: str, source_media: str = None
+        source_text: str, translation: str, source_media: str | None = None
     ) -> bool:
         for rule in req.verification_rules:
             try:
-                res = await verify_llm(source_text, translation, rule.value, source_media)
+                res = await verify_llm(
+                    source_text, translation, rule.value, source_media
+                )
                 if not res:
                     return False
             except Exception as exc:
@@ -540,10 +569,10 @@ async def verify_submission(req: VerifyReq, user=Depends(get_current_user)):
             for t in unique_translations
         ]
     )
-    
+
     translation_to_result = dict(zip(unique_translations, unique_results))
     results = [translation_to_result[t] for t in req.translations]
-    
+
     return {"results": results, "quota": quota, "quota_used": quota_used + 1}
 
 
@@ -599,7 +628,7 @@ async def update_submission(
         raise HTTPException(
             status_code=403, detail="Not authorized to update this submission"
         )
-        
+
     if submission["status"] == "accept":
         raise HTTPException(
             status_code=403, detail="Cannot edit an accepted submission"
@@ -632,7 +661,6 @@ async def delete_submission_endpoint(sid: int, user=Depends(get_current_user)):
     return {"ok": True}
 
 
-
 @router.get("/api/submissions")
 async def list_submissions(
     user=Depends(get_current_user),
@@ -654,12 +682,15 @@ async def list_submissions(
         rows = sorted(
             await db_get_submissions(),
             key=lambda s: (
-                0 if s["status"] == "pending"
-                else (1 if s["status"] == "return" else 2),
-                s["created_at"]
+                (
+                    0
+                    if s["status"] == "pending"
+                    else (1 if s["status"] == "return" else 2)
+                ),
+                s["created_at"],
             ),
         )
-        review_langs = user["review_langs"]
+        review_langs = {lang.lower() for lang in user["review_langs"]}
         if review_langs:
             rows = [s for s in rows if _submission_matches_scope(s, review_langs)]
         rows = _filter_reviewer_submissions(
@@ -694,7 +725,8 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
 
     if submission["user_id"] == user["id"] and "admin" not in user["roles"]:
         raise HTTPException(
-            status_code=403, detail="Reviewers who are not admins cannot change the status of their own submissions"
+            status_code=403,
+            detail="Reviewers who are not admins cannot change the status of their own submissions",
         )
 
     if req.action == "accept":
@@ -714,13 +746,19 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
             prefix = submission["source_text"][:70].replace("\n", " ")
             if not prefix and submission["source_media"]:
                 prefix = "Media submission"
-            content = f"#{submission['id']}: {prefix}..." if len(submission["source_text"]) > 40 else f"#{submission['id']}: {prefix}"
-            author["notifications"].append({
-                "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "type": "accepted" if req.action == "accept" else "returned",
-                "status": "unread",
-                "content": content
-            })
+            content = (
+                f"#{submission['id']}: {prefix}..."
+                if len(submission["source_text"]) > 40
+                else f"#{submission['id']}: {prefix}"
+            )
+            author["notifications"].append(
+                {
+                    "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "type": "accepted" if req.action == "accept" else "returned",
+                    "status": "unread",
+                    "content": content,
+                }
+            )
             await save_user(author)
 
     await save_submission(submission)
@@ -753,20 +791,29 @@ async def add_comment(sid: int, req: CommentReq, user=Depends(get_current_user))
             prefix = submission["source_text"][:40]
             if not prefix and submission["source_media"]:
                 prefix = "Media submission"
-            content = f"#{submission['id']}: {prefix}..." if len(submission["source_text"]) > 40 else f"#{submission['id']}: {prefix}"
-            author["notifications"].append({
-                "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
-                "type": "commented",
-                "status": "unread",
-                "content": content
-            })
+            content = (
+                f"#{submission['id']}: {prefix}..."
+                if len(submission["source_text"]) > 40
+                else f"#{submission['id']}: {prefix}"
+            )
+            author["notifications"].append(
+                {
+                    "created": datetime.now().strftime("%Y-%m-%d %H:%M"),
+                    "type": "commented",
+                    "status": "unread",
+                    "content": content,
+                }
+            )
             await save_user(author)
 
     await save_submission(submission)
     return {"ok": True}
 
+
 @router.post("/api/notifications")
-async def handle_notifications(req: NotificationActionReq, user=Depends(get_current_user)):
+async def handle_notifications(
+    req: NotificationActionReq, user=Depends(get_current_user)
+):
     if req.action == "view":
         for n in user["notifications"]:
             n["status"] = "viewed"
@@ -774,6 +821,6 @@ async def handle_notifications(req: NotificationActionReq, user=Depends(get_curr
         user["notifications"] = []
     else:
         raise HTTPException(status_code=400, detail="Invalid action")
-        
+
     await save_user(user)
     return {"ok": True}

@@ -63,6 +63,8 @@ async def create_user(user: dict) -> int:
         await db.execute("BEGIN EXCLUSIVE")
         async with db.execute("SELECT MAX(id) FROM users") as cur:
             row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("Failed to fetch max user ID.")
             new_id = (row[0] or 0) + 1
             
         user["id"] = new_id
@@ -119,6 +121,8 @@ async def create_submission(submission: dict) -> int:
         await db.execute("BEGIN EXCLUSIVE")
         async with db.execute("SELECT MAX(id) FROM submissions") as cur:
             row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("Failed to fetch max submission ID.")
             new_id = (row[0] or 0) + 1
             
         submission["id"] = new_id
@@ -144,7 +148,10 @@ async def init_db() -> None:
         await db.commit()
 
         async with db.execute("SELECT COUNT(*) FROM users") as cur:
-            count = (await cur.fetchone())[0]
+            row = await cur.fetchone()
+            if row is None:
+                raise RuntimeError("Failed to fetch user count.")
+            count = row[0]
 
         if count == 0:
             default_users = [
