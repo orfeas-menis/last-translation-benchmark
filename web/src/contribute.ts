@@ -180,7 +180,7 @@ $(async () => {
             $('#tr-status').text('');
         } catch (err) {
             console.error('translate error:', err);
-            $('#tr-status').html(`<span class="msg-err">✗ ${err instanceof Error ? err.message : JSON.stringify(err)}</span>`);
+            $('#tr-status').html(`<span class="msg-err">✗ ${escHtml(err instanceof Error ? err.message : JSON.stringify(err))}</span>`);
         } finally {
             $('#tr-btn').prop('disabled', false);
             updateButtonStates();

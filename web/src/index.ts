@@ -3,6 +3,7 @@ import $ from 'jquery';
 
 import { getCookie, getMe, logout, User, handleNotifications } from './api';
 import instructionsHtml from './assets/instructions.html';
+import { esc as escHtml } from './utils';
 
 $(async () => {
     $('#instructions-box').html(instructionsHtml);
@@ -26,7 +27,7 @@ function showRoleButtons(user: User): void {
     const container = $('#role-buttons');
     const actions = $('<div class="role-actions"></div>');
 
-    container.append(`<span>Hello ${user.name} (${user.username}) from ${user.affiliation}!</span><br><br>`);
+    container.append(`<span>Hello ${escHtml(user.name)} (${escHtml(user.username)}) from ${escHtml(user.affiliation)}!</span><br><br>`);
 
     if (user.roles.includes('contributor')) {
         actions.append('<a href="contribute" class="btn btn-success">✍️&nbsp;Contribute</a>');
@@ -64,7 +65,7 @@ function showRoleButtons(user: User): void {
                 padding: '10px', fontSize: '0.9em',
                 background: n.status === 'unread' ? '#ddd' : 'transparent', textAlign: 'left',
             });
-            item.html(`<strong>${n.type}</strong>: <span style="color:#444">${n.content}</span> <small style="color:#aaa; float:right;">${n.created}</small>`);
+            item.html(`<strong>${escHtml(n.type)}</strong>: <span style="color:#444">${escHtml(n.content)}</span> <small style="color:#aaa; float:right;">${escHtml(n.created)}</small>`);
             notifBox.append(item);
         });
         notifBox.append(clearBtn);
