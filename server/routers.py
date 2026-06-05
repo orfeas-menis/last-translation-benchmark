@@ -5,8 +5,9 @@ import os
 import secrets
 import time
 from datetime import datetime
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from .auth import get_current_user, require_admin
 from .db import (
@@ -71,6 +72,7 @@ async def me(user=Depends(get_current_user)):
         "credit_consent": user["credit_consent"],
         "notification_consent": user["notification_consent"],
         "notifications": user["notifications"],
+        "review_langs": user.get("review_langs", []),
     }
 
 
@@ -364,8 +366,8 @@ def _submission_matches_scope(submission: dict, review_langs: set[str]) -> bool:
 def _filter_reviewer_submissions(
     rows: list[dict],
     status: str,
-    source_lang: str,
-    target_lang: str,
+    source_langs: list[str],
+    target_langs: list[str],
     username: str,
 ) -> list[dict]:
     if status == "pending":
@@ -376,10 +378,18 @@ def _filter_reviewer_submissions(
         rows = [s for s in rows if s["status"] == "accept"]
     elif status == "returned":
         rows = [s for s in rows if s["status"] == "return"]
-    if source_lang:
-        rows = [s for s in rows if s["source_lang"] == source_lang]
-    if target_lang:
-        rows = [s for s in rows if s["target_lang"] == target_lang]
+    if source_langs:
+        s_lower = {lang.lower() for lang in source_langs}
+        rows = [
+            s for s in rows 
+            if any(s["source_lang"].lower() in lang or lang in s["source_lang"].lower() for lang in s_lower)
+        ]
+    if target_langs:
+        t_lower = {lang.lower() for lang in target_langs}
+        rows = [
+            s for s in rows 
+            if any(s["target_lang"].lower() in lang or lang in s["target_lang"].lower() for lang in t_lower)
+        ]
     if username:
         rows = [s for s in rows if s["username"] == username]
     return rows
@@ -693,20 +703,12 @@ async def delete_submission_endpoint(sid: int, user=Depends(get_current_user)):
 @router.get("/api/submissions")
 async def list_submissions(
     user=Depends(get_current_user),
-    mode: str = "contributor",
-    status: str = "all",
-    source_lang: str = "",
-    target_lang: str = "",
+    mode: Literal["contributor", "reviewer"] = "contributor",
+    status: Literal["pending", "accepted_or_returned", "accepted", "returned", "all"] = "all",
+    source_langs: list[str] = Query(default=[]),
+    target_langs: list[str] = Query(default=[]),
     username: str = "",
 ):
-    if status not in {
-        "pending",
-        "accepted_or_returned",
-        "accepted",
-        "returned",
-        "all",
-    }:
-        raise HTTPException(status_code=400, detail="Invalid status filter")
     if mode == "reviewer" and "reviewer" in user["roles"]:
         rows = sorted(
             await db_get_submissions(),
@@ -720,15 +722,22 @@ async def list_submissions(
             ),
         )
         review_langs = {lang.lower() for lang in user["review_langs"]}
-        if review_langs:
+        is_admin = "admin" in user["roles"]
+        
+        if review_langs and not is_admin:
             rows = [s for s in rows if _submission_matches_scope(s, review_langs)]
+            
         rows = _filter_reviewer_submissions(
             rows=rows,
             status=status,
-            source_lang=source_lang,
-            target_lang=target_lang,
+            source_langs=source_langs,
+            target_langs=target_langs,
             username=username,
         )
+        
+        # prevent non-admins from listing accepted submissions
+        if not is_admin:
+            rows = [s for s in rows if s["status"] != "accept"]
     else:
         rows = sorted(
             await db_get_submissions(user_id=user["id"]),

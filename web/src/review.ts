@@ -42,9 +42,6 @@ $(async () => {
     // Language / user filter selects
     $('#filter-source-lang, #filter-target-lang, #filter-user').on('change', loadSubmissions);
 
-    // Refresh
-    $('#refresh-btn').on('click', loadSubmissions);
-
     $('#sen-list').on('click', '.score-btn:not(.comment-send-btn)', async function () {
         if ($(this).prop('disabled')) return;
         const id = parseInt(String($(this).data('id')));
@@ -126,14 +123,18 @@ $(async () => {
 
 async function loadSubmissions(): Promise<void> {
     $('#sen-list').html('<div class="empty">Loading…</div>');
-    const sourceLangFilter = String($('#filter-source-lang').val() ?? '');
-    const targetLangFilter = String($('#filter-target-lang').val() ?? '');
+    const sourceLangVal = String($('#filter-source-lang').val() ?? '');
+    const targetLangVal = String($('#filter-target-lang').val() ?? '');
     const userFilter = String($('#filter-user').val() ?? '');
+    
+    let source_langs = sourceLangVal === 'my_langs' ? [...(currentUser?.review_langs || []), 'English'] : (sourceLangVal ? [sourceLangVal] : []);
+    let target_langs = targetLangVal === 'my_langs' ? [...(currentUser?.review_langs || []), 'English'] : (targetLangVal ? [targetLangVal] : []);
+
     try {
         allSugs = await getSubmissions('reviewer', {
             status: curFilter as 'pending' | 'accepted_or_returned' | 'accepted' | 'returned' | 'all',
-            source_lang: sourceLangFilter,
-            target_lang: targetLangFilter,
+            source_langs: source_langs,
+            target_langs: target_langs,
             username: userFilter,
         });
         populateFilters();
@@ -152,17 +153,24 @@ function populateFilters(): void {
         return $(id).find('option').map((_, el) => $(el).attr('value')).get().filter(v => v !== '');
     };
 
-    const existingSourceLangs = getOptions('#filter-source-lang');
-    const existingTargetLangs = getOptions('#filter-target-lang');
+    const existingSourceLangs = getOptions('#filter-source-lang').filter(v => v !== 'my_langs');
+    const existingTargetLangs = getOptions('#filter-target-lang').filter(v => v !== 'my_langs');
     const existingUsers = getOptions('#filter-user');
 
     const sourceLangs = [...new Set([...existingSourceLangs, ...allSugs.map(s => s.source_lang)])].sort();
     const targetLangs = [...new Set([...existingTargetLangs, ...allSugs.map(s => s.target_lang)])].sort();
     const users = [...new Set([...existingUsers, ...allSugs.map(s => s.username)])].sort();
 
-    $('#filter-source-lang').html('<option value="">All Source Languages</option>' +
+    let mySourceLangsOption = '';
+    let myTargetLangsOption = '';
+    if (currentUser?.roles.includes('admin')) {
+        mySourceLangsOption = `<option value="my_langs" ${sourceLangVal === 'my_langs' ? 'selected' : ''}>My languages only</option>`;
+        myTargetLangsOption = `<option value="my_langs" ${targetLangVal === 'my_langs' ? 'selected' : ''}>My languages only</option>`;
+    }
+
+    $('#filter-source-lang').html('<option value="">All Source Languages</option>' + mySourceLangsOption +
         sourceLangs.map(l => `<option value="${l}"${l === sourceLangVal ? ' selected' : ''}>${escHtml(l)}</option>`).join(''));
-    $('#filter-target-lang').html('<option value="">All Target Languages</option>' +
+    $('#filter-target-lang').html('<option value="">All Target Languages</option>' + myTargetLangsOption +
         targetLangs.map(l => `<option value="${l}"${l === targetLangVal ? ' selected' : ''}>${escHtml(l)}</option>`).join(''));
     $('#filter-user').html('<option value="">All Users</option>' +
         users.map(u => `<option value="${u}"${u === userVal ? ' selected' : ''}>${escHtml(u)}</option>`).join(''));

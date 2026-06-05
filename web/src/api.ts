@@ -22,6 +22,7 @@ export interface User {
     credit_consent: boolean;
     notification_consent: boolean;
     notifications: Notification[];
+    review_langs?: string[];
 }
 
 export interface TranslationEntry {
@@ -155,19 +156,19 @@ export function getSubmissions(
     mode: 'contributor' | 'reviewer' = 'contributor',
     filters?: {
         status?: 'pending' | 'accepted_or_returned' | 'accepted' | 'returned' | 'all';
-        source_lang?: string;
-        target_lang?: string;
+        source_langs?: string[];
+        target_langs?: string[];
         username?: string;
     },
 ) {
     const query = new URLSearchParams({ mode });
     const status = filters?.status;
-    const sourceLang = filters?.source_lang;
-    const targetLang = filters?.target_lang;
+    const sourceLangs = filters?.source_langs;
+    const targetLangs = filters?.target_langs;
     const username = filters?.username;
     if (status && status.trim() !== '') query.set('status', status);
-    if (sourceLang && sourceLang.trim() !== '') query.set('source_lang', sourceLang);
-    if (targetLang && targetLang.trim() !== '') query.set('target_lang', targetLang);
+    if (sourceLangs && sourceLangs.length > 0) sourceLangs.forEach(l => query.append('source_langs', l));
+    if (targetLangs && targetLangs.length > 0) targetLangs.forEach(l => query.append('target_langs', l));
     if (username && username.trim() !== '') query.set('username', username);
     return apiCall<Submission[]>('GET', `api/submissions?${query.toString()}`);
 }
