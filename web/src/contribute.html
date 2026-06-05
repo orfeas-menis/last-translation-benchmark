@@ -88,19 +88,19 @@
           <input type="file" id="src-file" style="display: none;" accept=".mp3,.wav,.png,.jpg,.jpeg">
           <div id="media-preview"></div>
 
-          <div style="margin-bottom: 20px;">
-            <div style="display: inline-block; width: 150px; vertical-align: top; font-size: 0.85em;">
-              <button id="add-media-btn" class="btn-underlined">
+          <div style="margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; font-size: 0.85em; gap: 4px;">
+              <button id="add-media-btn" class="btn-underlined" style="text-align: left;">
                 Add image/audio
               </button>
-              <button id="add-context-btn" class="btn-underlined">
+              <button id="add-context-btn" class="btn-underlined" style="text-align: left;">
                 Add instructions
               </button>
             </div>
-            <span id="tr-status"
-              style="font-size:0.85em;color:#64748b; display: inline-block; width: 210px; text-align: right;"></span>
-            <button class="btn btn-success" id="tr-btn" style="float: right;">⟳ Translate by all models</button>
-            <br>
+            <div style="display: flex; align-items: center; justify-content: flex-end; gap: 10px;">
+              <span id="tr-status" style="font-size:0.85em;color:#64748b;"></span>
+              <button class="btn btn-success" id="tr-btn">⟳ Translate by all models</button>
+            </div>
           </div>
 
 
@@ -139,6 +139,7 @@
 
           <div style="display: flex; justify-content: flex-end; align-items: center;">
             <span id="submit-status" style="margin-right:10px;font-size:0.85em"></span>
+            <span id="submit-reason" style="margin-right:10px;font-size:0.85em;color:#64748b;"></span>
             <button class="btn btn-secondary" id="cancel-edit-btn" style="display:none; margin-right:10px;">Cancel
               Edit</button>
             <button class="btn btn-success" id="submit-btn" disabled>Submit Input, Translations & Rule</button>

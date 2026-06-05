@@ -172,10 +172,10 @@ $(async () => {
             inputCorrespondsToTranslations = true;
             $('#pass-count').text('');
             $('#verify-result').text('');
-            $('#tr-status').text('✓ Done');
+            $('#tr-status').text('');
         } catch (err) {
             console.error('translate error:', err);
-            $('#tr-status').text(`✗ ${err instanceof Error ? err.message : JSON.stringify(err)}`);
+            $('#tr-status').html(`<span class="msg-err">✗ ${err instanceof Error ? err.message : JSON.stringify(err)}</span>`);
         } finally {
             $('#tr-btn').prop('disabled', false);
             updateButtonStates();
@@ -572,4 +572,19 @@ function updateButtonStates(): void {
     // Submit button: enabled only if all requirements pass AND translations correspond to current input
     const allPassed = rulesNotEmpty && humanExistsAndPasses && mtPassValid && inputCorrespondsToTranslations;
     $('#submit-btn').prop('disabled', !allPassed);
+
+    if (allPassed) {
+        $('#submit-reason').text('');
+    } else {
+        let reason = '';
+        if (lastResults.length === 0 || !inputCorrespondsToTranslations) reason = 'Run translations first';
+        else if (!rulesNotEmpty) reason = 'All rules must have content';
+        else if (!hasOwnTranslation) reason = 'Human translation is required';
+        else if (ownVerified === null) reason = 'Run verification first';
+        else if (!humanExistsAndPasses) reason = 'Human translation must pass verification';
+        else if (!mtPassValid) reason = 'Only 2 MTs can pass';
+        else reason = 'Run verification first';
+        
+        $('#submit-reason').text(`(${reason})`);
+    }
 }
