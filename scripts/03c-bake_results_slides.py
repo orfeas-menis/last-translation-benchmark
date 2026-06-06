@@ -39,5 +39,8 @@ for submission in data_submissions:
 
 data_out["status_counts"] = dict(status_counts.most_common())
 
+# number of quota_used per all submissions
+data_out["quota_per_submission"] = f"{sum(x["quota_used"] for x in data_users if x["quota_used"]) / len(data_submissions):.1f}"
+
 with open("../computed/bake_results.json", "w") as f:
     json.dump(data_out, f, indent=2)
