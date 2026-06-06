@@ -146,6 +146,15 @@ $(function() {
 
 export function sortSubmissions(submissions: Submission[], sortOption: string, myUsername: string): void {
     submissions.sort((a, b) => {
+        // Primary sort: status ('return' first, then 'pending', then 'accept')
+        const statusOrder: Record<string, number> = { 'return': 0, 'pending': 1, 'accept': 2 };
+        const orderA = statusOrder[a.status] ?? 3;
+        const orderB = statusOrder[b.status] ?? 3;
+        
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+
         const getLatestNonMineCommentDate = (s: Submission): string | null => {
             if (!s.comments || s.comments.length === 0) return null;
             const nonMine = s.comments.filter(c => c.author !== myUsername);
