@@ -1,14 +1,35 @@
 import './assets/style.css';
 import $ from 'jquery';
 import {
-    getMe, getCookie, getAdminUsers, deleteAdminUser,
-    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, renderRoleSwitcher, AdminUser,
+    getMe, getCookie, getAdminOverview, deleteAdminUser,
+    adjustAdminQuota, updateAdminRoles, updateAdminReviewScope, renderRoleSwitcher, AdminUser, AdminOverview
 } from './api';
 
 import { esc, showToast, accessDenied, renderHeaderStatus } from './utils';
 
 let allUsers: AdminUser[] = [];
-let adminName: string = '';
+let adminOverview: AdminOverview | null = null;
+
+function renderOverview(data: AdminOverview) {
+    const statusCounts = Object.keys(data.submissions_total)
+        .map(status => `<strong>${data.submissions_total[status]}</strong> ${esc(status)}`)
+        .join(', ');
+    
+    let html = `<p style="margin-top:0;"><strong>Total Submissions:</strong> ${statusCounts}. `;
+    
+    if (data.submissions_without_reviewer.length > 0) {
+        html += `<p style="font-weight: bold; margin-bottom: 4px;">Pending submissions with no elligible reviewers (${data.submissions_without_reviewer.length}):</p>`;
+        html += `<ul style="margin-top: 0; margin-bottom: 12px;">`;
+        for (const sub of data.submissions_without_reviewer) {
+            html += `<li>(#${sub.id}) ${esc(sub.source_lang)} &rarr; ${esc(sub.target_lang)} by ${esc(sub.user_name || sub.username)}</li>`;
+        }
+        html += `</ul>`;
+    }
+
+    html += `</p>`
+    
+    $('#overview-content').html(html);
+}
 
 function renderTable(users: AdminUser[]): void {
     if (!users.length) {
@@ -25,42 +46,50 @@ function renderTable(users: AdminUser[]): void {
             return `<span class="role-tag role-${r} ${active ? '' : 'role-inactive'}" data-role="${r}">${esc(r)}</span>`;
         }).join('');
 
-        let statusLabel: string;
-        let statusTitle: string;
-        if (u.total_submitted > 0) {
-            statusLabel = 'submitted';
-            statusTitle = u.last_active ? `Last active: ${u.last_active}` : '';
-        } else if (u.last_active) {
-            statusLabel = 'logged-in';
-            statusTitle = `Last active: ${u.last_active}`;
-        } else {
-            statusLabel = 'registered';
-            statusTitle = '';
+        const sugg = u.review_suggestions || [];
+        let suggHtml = sugg.length === 0 ? '<span class="muted">None</span>' : `<span class="sugg-toggle" style="cursor:pointer; text-decoration: underline;" data-uid="${u.id}">${sugg.length} possible</span>`;
+        if (sugg.length > 0 && !u.roles.includes('reviewer')) {
+             suggHtml += `<br><span style="font-size: 0.8em;">not a reviewer</span>`;
         }
-        const statusBadge = `<span style="font-size:0.8em;white-space:nowrap" title="${esc(statusTitle)}">${statusLabel}</span>`;
+
+        let suggListHtml = '';
+        if (sugg.length > 0) {
+            suggListHtml = `<tr class="sugg-row-${u.id}" style="display:none;">
+                <td colspan="10" style="padding: 10px 20px; border-bottom: 1px solid #e2e8f0;">
+                    <ul style="margin: 0; padding-left: 20px; font-size: 0.9em;">
+                        ${sugg.map(s => `<li>(#${s.id}) ${esc(s.source_lang)} &rarr; ${esc(s.target_lang)} by ${esc(s.user_name || s.username)}</li>`).join('')}
+                    </ul>
+                </td>
+            </tr>`;
+        }
 
         return `<tr data-uid="${u.id}">
             <td><a href="${link}" class="uname" target="_blank">${esc(u.username)}</a></td>
+            <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
             <td style="width:1%;white-space:nowrap">${rolesHtml}</td>
             <td class="scope-cell" data-uid="${u.id}" title="Click to edit language scope">${u.review_langs && u.review_langs.length ? esc(u.review_langs.join(',')) : '<span class="muted">all</span>'}</td>
-            <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
-            <td>${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
-            <td class="email-cell"><a href="mailto:${esc(u.email)}">${esc(u.email)}</a></td>
+            <td class="sugg-cell">${suggHtml}</td>
+            <td class="affil-cell" title="${esc(u.affiliation)}">${u.affiliation ? esc(u.affiliation) : '<span class="muted">—</span>'}</td>
+            <td class="email-cell" title="${esc(u.email)}"><a href="mailto:${esc(u.email)}">${esc(u.email)}</a></td>
             <td style="text-align:right;white-space:nowrap">${u.quota_used}&nbsp;/&nbsp;<button class="act-btn act-quota" data-uid="${u.id}" title="Adjust quota">${u.quota}</button></td>
             <td style="text-align:right">${u.total_accepted}&nbsp;/&nbsp;${u.total_submitted}</td>
-            <td>${statusBadge}</td>
             <td>
               <div class="action-btns">
                 <button class="act-btn act-delete" data-uid="${u.id}" title="Remove user">✕</button>
               </div>
             </td>
-        </tr>`;
+        </tr>${suggListHtml}`;
     }).join('');
 
     $('#user-table').html(`<table>
-        <thead><tr><th>Username</th><th style="width:1%;white-space:nowrap">Roles</th><th class="scope-cell">Scope</th><th>Name</th><th>Affiliation</th><th>Email</th><th style="text-align:right">Used&nbsp;/<br>Quota</th><th style="text-align:right">Accepted&nbsp;/<br>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Username</th><th>Name</th><th style="width:1%;white-space:nowrap">Roles</th><th class="scope-cell">Reviewer<br>scope</th><th class="sugg-cell">Reviewer<br>suggestions</th><th class="affil-cell">Affiliation</th><th class="email-cell">Email</th><th style="text-align:right">Used&nbsp;/<br>Quota</th><th style="text-align:right">Accepted&nbsp;/<br>Submitted</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`);
+
+    $('.sugg-toggle').on('click', function () {
+        const uid = $(this).data('uid');
+        $(`.sugg-row-${uid}`).toggle();
+    });
 
     $('.role-tag').on('click', async function () {
         const uid = $(this).closest('tr').data('uid');
@@ -142,11 +171,12 @@ $(async () => {
     if (!getCookie('ltb_token')) { window.location.href = 'index.html'; return; }
     try {
         const user = await getMe();
-        adminName = user.name || user.username;
         renderHeaderStatus(user);
         renderRoleSwitcher(user.roles);
         if (!user.roles.includes('admin')) { accessDenied(user.roles, 'admin'); return; }
-        allUsers = await getAdminUsers();
+        adminOverview = await getAdminOverview();
+        allUsers = adminOverview.users;
+        renderOverview(adminOverview);
         applyFilter();
     } catch { window.location.href = 'index.html'; }
 

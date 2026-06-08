@@ -33,6 +33,7 @@ export interface TranslationEntry {
 
 export interface Comment {
     author: string;
+    author_name?: string;
     text: string;
     created_at: string;
 }
@@ -45,6 +46,7 @@ export interface Submission {
     id: number;
     user_id: number;
     username: string;
+    user_name?: string;
     source_text: string;
     source_media?: string;
     source_instructions?: string;
@@ -249,10 +251,25 @@ export interface AdminUser {
     total_submitted: number;
     review_langs: string[];
     last_active: string;
+    review_suggestions: ReviewSuggestion[];
 }
 
-export function getAdminUsers() {
-    return apiCall<AdminUser[]>('GET', 'api/admin/users');
+export interface ReviewSuggestion {
+    id: number;
+    source_lang: string;
+    target_lang: string;
+    username: string;
+    user_name?: string;
+}
+
+export interface AdminOverview {
+    users: AdminUser[];
+    submissions_without_reviewer: ReviewSuggestion[];
+    submissions_total: Record<string, number>;
+}
+
+export function getAdminOverview() {
+    return apiCall<AdminOverview>('GET', 'api/admin');
 }
 
 export function deleteAdminUser(uid: number) {

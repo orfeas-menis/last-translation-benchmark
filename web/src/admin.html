@@ -25,7 +25,7 @@
       padding: 10px;
       color: #475569;
       font-weight: 700;
-      border-bottom: 4px solid black;
+      border-bottom: 1px solid #e2e8f0;
     }
 
     td {
@@ -153,10 +153,21 @@
     }
 
     .email-cell {
-      max-width: 160px;
+      max-width: 120px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+    }
+
+    .affil-cell {
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .sugg-cell {
+      min-width: 100px;
     }
 
     .email-cell a {
@@ -200,6 +211,13 @@
   </header>
 
   <div class="container" style="max-width: 1400px;">
+    <div class="card" style="margin-bottom: 20px;" id="overview-card">
+      <h2 style="margin:0; margin-bottom:12px;">Submission overview</h2>
+      <div id="overview-content" style="font-size: 0.9em; line-height: 1.5;">Loading...</div>
+    </div>
+
+    <hr style="border: 0; border-top: 4px solid black; margin: 24px 0;">
+
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0">Users</h2>

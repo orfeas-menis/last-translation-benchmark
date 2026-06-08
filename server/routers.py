@@ -238,11 +238,91 @@ async def _admin_user_view(u: dict) -> dict:
     }
 
 
-@router.get("/api/admin/users")
-async def admin_users(user=Depends(get_current_user)):
+@router.get("/api/admin")
+async def admin_overview(user=Depends(get_current_user)):
     require_admin(user)
     users = await get_users()
-    return await asyncio.gather(*[_admin_user_view(u) for u in users])
+    submissions = await db_get_submissions()
+
+    submissions_total = {}
+    for sub in submissions:
+        submissions_total[sub["status"]] = submissions_total.get(sub["status"], 0) + 1
+
+    user_langs = {}
+    for sub in submissions:
+        username = sub["username"]
+        if username not in user_langs:
+            user_langs[username] = set()
+        user_langs[username].add(sub["source_lang"])
+        user_langs[username].add(sub["target_lang"])
+
+    submissions_pending = [x for x in submissions if x["status"] == "pending"]
+    username_to_name = {x["username"]: x["name"] for x in users}
+    
+    review_suggestions_by_user = {}
+    covered_submissions = set()
+
+    for u_username, langs in user_langs.items():
+        feasible = [
+            x for x in submissions_pending
+            if x["source_lang"] in langs and x["target_lang"] in langs and x["username"] != u_username
+        ]
+        if feasible:
+            if u_username not in review_suggestions_by_user:
+                review_suggestions_by_user[u_username] = []
+            for f in feasible:
+                review_suggestions_by_user[u_username].append({
+                    "id": f["id"],
+                    "source_lang": f["source_lang"],
+                    "target_lang": f["target_lang"],
+                    "username": f["username"],
+                    "user_name": username_to_name.get(f["username"])
+                })
+                covered_submissions.add(f["id"])
+
+    submissions_without_reviewer = []
+    for sub in submissions_pending:
+        if sub["id"] not in covered_submissions:
+            submissions_without_reviewer.append({
+                "id": sub["id"],
+                "source_lang": sub["source_lang"],
+                "target_lang": sub["target_lang"],
+                "username": sub["username"],
+                "user_name": username_to_name.get(sub["username"])
+            })
+
+    user_submissions = {}
+    for sub in submissions:
+        user_submissions.setdefault(sub["user_id"], []).append(sub)
+
+    user_views = []
+    for u in users:
+        u_subs = user_submissions.get(u["id"], [])
+        total_accepted = sum(1 for s in u_subs if s["status"] == "accept")
+        view = {
+            "id": u["id"],
+            "username": u["username"],
+            "roles": u["roles"],
+            "magic_token": u["magic_token"],
+            "name": u["name"],
+            "affiliation": u["affiliation"],
+            "email": u["email"],
+            "credit_consent": u["credit_consent"],
+            "quota": u["quota"],
+            "quota_used": u["quota_used"],
+            "review_langs": u["review_langs"],
+            "total_accepted": total_accepted,
+            "total_submitted": len(u_subs),
+            "last_active": u["last_active"],
+            "review_suggestions": review_suggestions_by_user.get(u["username"], []),
+        }
+        user_views.append(view)
+
+    return {
+        "users": user_views,
+        "submissions_without_reviewer": submissions_without_reviewer,
+        "submissions_total": submissions_total
+    }
 
 
 @router.get("/api/public-dashboard")
@@ -744,6 +824,15 @@ async def list_submissions(
             ]
     else:
         rows = await db_get_submissions(user_id=user["id"])
+    
+    users = await get_users()
+    username_to_name = {u["username"]: u["name"] for u in users}
+    for row in rows:
+        row["user_name"] = username_to_name.get(row["username"])
+        if "comments" in row and isinstance(row["comments"], list):
+            for comment in row["comments"]:
+                comment["author_name"] = username_to_name.get(comment["author"])
+
     return rows
 
 

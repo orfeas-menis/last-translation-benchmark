@@ -90,7 +90,7 @@ export function renderCommentThread(comments: Comment[] | undefined, currentUser
         const align = isOwn ? 'flex-end' : 'flex-start';
         const bg = getUsernameColor(c.author);
         return `<div class="comment-msg" style="align-self: ${align}; background: ${bg};">
-            <span class="comment-author" title="${esc(c.created_at)}" style="cursor: help;">${esc(c.author)}</span>
+            <span class="comment-author" title="${esc(c.created_at)}" style="cursor: help;">${esc(c.author_name || c.author)}</span>
             <span class="comment-body">${esc(c.text)}</span>
         </div>`;
     }).join('')}</div>`;
