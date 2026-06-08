@@ -484,6 +484,23 @@ def _filter_reviewer_submissions(
 
 # --- Translate ---
 
+MODEL_LIBRARY = [
+    {"name": "Lara", "fn": translate_lara, "support_image": True, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Google Translate", "fn": translate_google, "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Gemini 2.5 Flash", "fn": functools.partial(translate_openrouter, model="google/gemini-2.5-flash"), "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    {"name": "Gemma 4", "fn": functools.partial(translate_openrouter, model="google/gemma-4-31b-it"), "support_image": True, "support_audio": True, "support_video": True, "support_textonly": True},
+    {"name": "Llama 4 Maverick", "fn": functools.partial(translate_openrouter, model="meta-llama/llama-4-maverick"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "GPT-5.4 Mini", "fn": functools.partial(translate_openrouter, model="openai/gpt-5.4-mini"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Deepseek V4 Pro", "fn": functools.partial(translate_openrouter, model="deepseek/deepseek-v4-pro"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Claude Haiku 4.5", "fn": functools.partial(translate_openrouter, model="anthropic/claude-haiku-4.5"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Claude Sonnet 4.5", "fn": functools.partial(translate_openrouter, model="anthropic/claude-sonnet-4.5"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Cohere Command A", "fn": functools.partial(translate_openrouter, model="cohere/command-a"), "support_image": False, "support_audio": False, "support_video": False, "support_textonly": True},
+    {"name": "Gemini 3.5 Flash", "fn": functools.partial(translate_openrouter, model="google/gemini-3.5-flash"), "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
+    {"name": "Gemini 2.5 Pro", "fn": functools.partial(translate_openrouter, model="google/gemini-2.5-pro"), "support_image": False, "support_audio": True, "support_video": True, "support_textonly": False},
+    {"name": "Qwen 3.7 Plus", "fn": functools.partial(translate_openrouter, model="qwen/qwen3.7-plus"), "support_image": False, "support_audio": False, "support_video": True, "support_textonly": False},
+    {"name": "Voxtral Small", "fn": functools.partial(translate_openrouter, model="mistralai/voxtral-small-24b-2507"), "support_image": False, "support_audio": True, "support_video": False, "support_textonly": False},
+]
+
 
 @router.post("/api/translate-submission")
 async def translate_submission(req: TranslateReq, user=Depends(get_current_user)):
@@ -555,102 +572,41 @@ async def translate_submission(req: TranslateReq, user=Depends(get_current_user)
                 return {"model": name, "translation": None, "error": None}
             return {"model": name, "translation": None, "error": str(exc)}
 
-    tasks = [
-        _run_translate(
-            "Lara",
-            translate_lara,
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Google Translate",
-            translate_google,
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Gemini 2.5 Flash",
-            functools.partial(translate_openrouter, model="google/gemini-2.5-flash"),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Gemma 4",
-            functools.partial(translate_openrouter, model="google/gemma-4-31b-it"),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Llama 4 Maverick",
-            functools.partial(
-                translate_openrouter, model="meta-llama/llama-4-maverick"
-            ),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "GPT-5.4 Mini",
-            functools.partial(translate_openrouter, model="openai/gpt-5.4-mini"),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Deepseek V4 Pro",
-            functools.partial(translate_openrouter, model="deepseek/deepseek-v4-pro"),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Claude Haiku 4.5",
-            functools.partial(translate_openrouter, model="anthropic/claude-haiku-4.5"),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Claude Sonnet 4.5",
-            functools.partial(
-                translate_openrouter, model="anthropic/claude-sonnet-4.5"
-            ),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-        _run_translate(
-            "Cohere Command A",
-            functools.partial(translate_openrouter, model="cohere/command-a"),
-            req.text,
-            source_name,
-            target_name,
-            req.source_media,
-            req.source_instructions,
-        ),
-    ]
+    has_image = False
+    has_audio = False
+    has_video = False
+    if req.source_media:
+        mime = req.source_media.split(",")[0]
+        if "audio" in mime:
+            has_audio = True
+        elif "video" in mime:
+            has_video = True
+        else:
+            has_image = True
+    
+    tasks = []
+    for model_info in MODEL_LIBRARY:
+        # Check if model supports the current request
+        if has_video and not model_info["support_video"]:
+            continue
+        if has_audio and not model_info["support_audio"]:
+            continue
+        if has_image and not model_info["support_image"]:
+            continue
+        if not req.source_media and not model_info["support_textonly"]:
+            continue
+        
+        tasks.append(
+            _run_translate(
+                model_info["name"],
+                model_info["fn"],
+                req.text,
+                source_name,
+                target_name,
+                req.source_media,
+                req.source_instructions,
+            )
+        )
     results = await asyncio.gather(*tasks)
 
     # filter out translations that did not pass because of language incompatibility
