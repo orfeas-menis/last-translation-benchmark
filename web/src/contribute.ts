@@ -85,10 +85,10 @@ $(async () => {
         const isHidden = $('#src-instructions').is(':hidden');
         if (isHidden) {
             $('#src-instructions').show().trigger('focus');
-            $('#add-context-btn').text('Remove instructions');
+            $('#add-context-btn').text('Remove instructions/context');
         } else {
             $('#src-instructions').hide().val('');
-            $('#add-context-btn').text('Add instructions');
+            $('#add-context-btn').text('Add instructions/context');
             inputCorrespondsToTranslations = false;
             invalidateVerification();
             updateButtonStates();
@@ -362,7 +362,7 @@ $(async () => {
             $('#add-context-btn').text('Remove instructions');
         } else {
             $('#src-instructions').val('').hide();
-            $('#add-context-btn').text('Add instructions');
+            $('#add-context-btn').text('Add instructions/context');
         }
 
         $('#src-text').val(sub.source_text);
@@ -443,7 +443,7 @@ $(async () => {
         $('#media-preview').empty();
         $('#add-media-btn').text('Add image/audio/video');
         $('#src-instructions').val('').hide();
-        $('#add-context-btn').text('Add instructions');
+        $('#add-context-btn').text('Add instructions/context');
         updateButtonStates();
     }
 
