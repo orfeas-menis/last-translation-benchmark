@@ -1,11 +1,6 @@
 import asyncio
-import sys
-import os
 
-# Add parent directory to path to import server.db
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from server.db import get_submissions, save_submission
+from last_translation_benchmark.db import get_submissions, save_submission
 
 async def migrate_point_model():
     print("Fetching submissions...")

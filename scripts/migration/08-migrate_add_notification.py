@@ -1,13 +1,9 @@
-import sys
 import os
 import argparse
 import asyncio
 
-# Add parent directory to path to import server modules
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from server.db import get_users, get_submissions, save_user, init_db
-from server.utils import send_email
+from last_translation_benchmark.db import get_users, get_submissions, save_user, init_db
+from last_translation_benchmark.utils import send_email
 
 async def migrate():
     await init_db()

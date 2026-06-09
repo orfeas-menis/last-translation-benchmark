@@ -21,3 +21,6 @@ node_modules/
 package-lock.json
 web/node_modules/
 web/package-lock.json
+
+# Ignore the symlink created for VS Code Pylance
+last_translation_benchmark

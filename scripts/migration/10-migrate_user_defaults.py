@@ -1,11 +1,6 @@
 import asyncio
-import os
-import sys
 
-# Add the parent directory to sys.path to import server module
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from server.db import get_users, save_user
+from last_translation_benchmark.db import get_users, save_user
 
 async def migrate():
     users = await get_users()

@@ -1,11 +1,6 @@
 import asyncio
-import sys
-from pathlib import Path
 
-# Add server to path so we can import db
-sys.path.append(str(Path(__file__).parent.parent))
-
-from server.db import get_submissions, save_submission
+from last_translation_benchmark.db import get_submissions, save_submission
 
 async def migrate():
     submissions = await get_submissions()
