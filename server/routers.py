@@ -114,25 +114,22 @@ async def register_user(req: ProfileReq):
     if any(u["email"].strip().lower() == req.email.strip().lower() for u in users):
         raise HTTPException(status_code=400, detail="User already registered")
 
-    # Generate username from email prefix
-    username = req.email.split("@")[0].lower()
-    username = "".join(c for c in username if c.isalnum() or c in "._-")
-    if not username:
-        raise HTTPException(
-            status_code=400, detail="Cannot generate username from email"
-        )
+    # Generate username from name: First_Last
+    parts = req.name.strip().split()
+    base_username = "_".join(part.capitalize() for part in parts)
+    base_username = "".join(c for c in base_username if c.isalnum() or c == "_")
+    if not base_username:
+        raise HTTPException(status_code=400, detail="Invalid name for username generation")
 
-    original_username = username
+    username = base_username
+    suffix = 2
     while True:
         # Check if username already exists
         if all(u["username"] != username for u in users):
             break
 
-        if username == original_username:
-            username += "-"
-
-        # add random suffix to avoid collisions
-        username += secrets.token_hex(5)[:2]
+        username = f"{base_username}_{suffix}"
+        suffix += 1
 
     new_user = {
         "username": username,
