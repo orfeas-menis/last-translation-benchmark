@@ -43,5 +43,16 @@ data_out["status_counts"] = dict(status_counts.most_common())
 # number of quota_used per all submissions
 data_out["quota_per_submission"] = f"{sum(x["quota_used"] for x in data_users if x["quota_used"]) / len(data_submissions):.1f}"
 
+counter_passing = collections.Counter()
+for submission in data_submissions:
+    # how many systems pass
+    if submission["translations"] is None:
+        continue
+    passing = sum(all(entry["verified"]) for entry in submission["translations"] if entry["verified"] is not None)
+    counter_passing[passing-1] += 1
+
+print(counter_passing)
+data_out["passing_counts"] = dict(counter_passing.most_common())
+
 with open("../computed/bake_results.json", "w") as f:
     json.dump(data_out, f, indent=2)

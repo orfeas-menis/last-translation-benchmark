@@ -291,8 +291,8 @@ $(async () => {
         }
 
         const mtPassCount = lastResults.filter(r => r.verified != null && r.verified.every(v => v)).length;
-        if (mtPassCount > 2) {
-            $('#submit-status').html('<span class="msg-err">At most two MT translations can pass verification</span>');
+        if (mtPassCount > 3) {
+            $('#submit-status').html('<span class="msg-err">At most three MT translations can pass verification</span>');
             return;
         }
 
@@ -577,7 +577,7 @@ function updateButtonStates(): void {
     const rulesNotEmpty = rules.length > 0 && rules.every(r => r.value.trim() !== '');
     const humanExistsAndPasses = hasOwnTranslation && ownVerified !== null && ownVerified.every(v => v);
     const mtPassCount = lastResults.filter(r => r.verified != null && r.verified.every(v => v)).length;
-    const mtPassValid = mtPassCount <= 2;
+    const mtPassValid = mtPassCount <= 3;
 
     // Submit button: enabled only if all requirements pass AND translations correspond to current input
     const allPassed = rulesNotEmpty && humanExistsAndPasses && mtPassValid && inputCorrespondsToTranslations;
@@ -592,7 +592,7 @@ function updateButtonStates(): void {
         else if (!hasOwnTranslation) reason = 'Human translation is required';
         else if (ownVerified === null) reason = 'Run verification first';
         else if (!humanExistsAndPasses) reason = 'Human translation must pass verification';
-        else if (!mtPassValid) reason = 'Only 2 MTs can pass';
+        else if (!mtPassValid) reason = 'Only 3 MTs can pass';
         else reason = 'Run verification first';
         
         $('#submit-reason').text(`(${reason})`);
