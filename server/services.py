@@ -172,7 +172,7 @@ async def call_llm(prompt: str, model: str = "google/gemini-2.5-flash") -> str:
     return response.choices[0].message.content  # type: ignore
 
 
-@retry_async(times=2)
+@retry_async(times=3)
 async def verify_llm(
     source_text: str, translation: str, rule: str, source_media: str | None = None
 ) -> bool:
