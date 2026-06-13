@@ -1,6 +1,5 @@
 # <img src="web/src/assets/favicon.svg" height=30> Last Translation Benchmark
 
-
 This platform gathers inputs (text, video, audio, images, documents) that are challenging for modern machine translation systems.
 Contributors submit these inputs alongside machine translation outputs and a verification rule.
 With 10 approved submissions, contributors are eligible for inclusion in the upcoming research publication.
@@ -19,6 +18,8 @@ Make sure you read the instructions beforehand.
 > **Translation (Google Translate)**: "_jaký je rozdíl mezi vězením a vězením?_" \
 > **Translation (Human)**: "_jaký je rozdíl mezi vazební věznicí a vězením?_" \
 > **Verification rule**: "_The words for the "jail" and "prison" shouldn't be identical."_
+
+<img width="1000" alt="Last Translation Benchmark poster" src="https://github.com/user-attachments/assets/f0971f5c-fc95-4d48-9f13-a01934b4913d" />
 
 ## Development
 
