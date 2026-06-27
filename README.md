@@ -60,8 +60,7 @@ The instructions in [web/src/assets/instructions.html](web/src/assets/instructio
 
 ## License
 
-The source code in this repository is licensed under [MIT](LICENSE).
-The benchmark data (under [data/](data/)) is licensed under [CC BY 4.0](data/LICENSE).
+The source code in this repository is licensed under [MIT](LICENSE), and the data under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.en).
 
 ## Contributing
 
