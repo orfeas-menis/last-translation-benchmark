@@ -691,12 +691,18 @@ async def create_submission(req: SubmissionReq, user=Depends(get_current_user)):
         "source_media": req.source_media,
         "source_lang": req.source_lang.strip(),
         "target_lang": req.target_lang.strip(),
-        "verification_rules": [r.model_dump() for r in req.verification_rules],
-        "translations": [t.model_dump() for t in req.translations],
+        "verification_rules": [r.dict() for r in req.verification_rules],
+        "translations": [t.dict() for t in req.translations],
         "status": "pending",
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "source_instructions": req.source_instructions,
-        "comments": [],
+        "comments": [
+            {
+                "author": user["username"],
+                "text": "SUBMIT",
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            }
+        ],
         "reviewed_by": None,
     }
     await db_create_submission(submission)
@@ -725,8 +731,8 @@ async def update_submission(
         "source_text": req.source_text,
         "source_lang": req.source_lang,
         "target_lang": req.target_lang,
-        "verification_rules": [r.model_dump() for r in req.verification_rules],
-        "translations": [t.model_dump() for t in req.translations],
+        "verification_rules": [r.dict() for r in req.verification_rules],
+        "translations": [t.dict() for t in req.translations],
         "status": "pending",
         "reviewed_by": None,
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -734,6 +740,13 @@ async def update_submission(
         "source_media": req.source_media,
     }
     submission.update(update)
+    submission["comments"].append(
+        {
+            "author": user["username"],
+            "text": "SUBMIT",
+            "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+        }
+    )
     await save_submission(submission)
     return {"ok": True}
 
@@ -834,6 +847,15 @@ async def score_submission(sid: int, req: ScoreReq, user=Depends(get_current_use
         raise HTTPException(status_code=400, detail="Invalid action")
 
     submission["reviewed_by"] = user["username"]
+
+    if req.action in ("accept", "return"):
+        submission["comments"].append(
+            {
+                "author": user["username"],
+                "text": "ACCEPT" if req.action == "accept" else "RETURN",
+                "created_at": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            }
+        )
 
     if req.action in ("accept", "return"):
         author = await get_user_by_id(submission["user_id"])

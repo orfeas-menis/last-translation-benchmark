@@ -85,7 +85,9 @@ function getUsernameColor(username: string): string {
 
 export function renderCommentThread(comments: Comment[] | undefined, currentUsername: string): string {
     if (!comments?.length) return '';
-    return `<div class="comment-thread">${comments.map(c => {
+    const filteredComments = comments.filter((c, i) => !(i === 0 && c.text === "SUBMIT"));
+    if (!filteredComments.length) return '';
+    return `<div class="comment-thread">${filteredComments.map(c => {
         const isOwn = c.author === currentUsername;
         const align = isOwn ? 'flex-end' : 'flex-start';
         const bg = getUsernameColor(c.author);
