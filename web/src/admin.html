@@ -228,7 +228,10 @@
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
           <h2 style="margin:0">Users</h2>
-          <div style="display:flex; gap:8px;">
+          <div style="display:flex; gap:8px; align-items:center;">
+            <label style="font-size:0.85em; display:flex; align-items:center; gap:4px; color:#475569; cursor:pointer; margin-top: -10px; margin-right: 10px;">
+              <input type="checkbox" id="nonzero-filter" style="margin-top: -3px;"> Submissions&nbsp;>0
+            </label>
             <select id="role-filter" class="admin-input">
               <option value="">All Roles</option>
               <option value="contributor">Contributor</option>

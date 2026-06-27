@@ -178,10 +178,12 @@ function renderTable(users: AdminUser[]): void {
 function applyFilter(): void {
     const q = ($('#filter-input').val() as string).toLowerCase().trim();
     const role = $('#role-filter').val() as string;
+    const nonzero = $('#nonzero-filter').is(':checked');
     const filtered = allUsers.filter(u => {
         const matchesRole = !role || u.roles.includes(role);
         const matchesQuery = !q || u.username.toLowerCase().includes(q) || (u.name || '').toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q);
-        return matchesRole && matchesQuery;
+        const matchesNonzero = !nonzero || ((u.total_submitted || 0) > 0);
+        return matchesRole && matchesQuery && matchesNonzero;
     });
     $('#filtered-count').text(`Total: ${filtered.length} users`);
     renderTable(filtered);
@@ -201,4 +203,5 @@ $(async () => {
 
     $('#filter-input').on('input', applyFilter);
     $('#role-filter').on('change', applyFilter);
+    $('#nonzero-filter').on('change', applyFilter);
 });
