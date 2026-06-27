@@ -83,7 +83,7 @@ function renderTable(users: AdminUser[]): void {
         }
 
         return `<tr data-uid="${u.id}">
-            <td><a href="${link}" class="uname" target="_blank">${esc(u.username)}</a></td>
+            <td class="uname-cell" title="${esc(u.username)}"><a href="${link}" class="uname" target="_blank">${esc(u.username)}</a></td>
             <td>${u.name ? esc(u.name) : '<span class="muted">—</span>'}</td>
             <td style="width:1%;white-space:nowrap">${rolesHtml}</td>
             <td class="scope-cell" data-uid="${u.id}" title="Click to edit language scope">${u.review_langs && u.review_langs.length ? esc(u.review_langs.join(',')) : '<span class="muted">all</span>'}</td>
@@ -101,7 +101,7 @@ function renderTable(users: AdminUser[]): void {
     }).join('');
 
     $('#user-table').html(`<table>
-        <thead><tr><th>Username</th><th>Name</th><th style="width:1%;white-space:nowrap">Roles</th><th class="scope-cell">Reviewer<br>scope</th><th class="sugg-cell">Reviewer<br>suggestions</th><th class="affil-cell">Affiliation</th><th class="email-cell">Email</th><th style="text-align:right">Used&nbsp;/<br>Quota</th><th style="text-align:right">Accepted&nbsp;/<br>Submitted</th><th>Actions</th></tr></thead>
+        <thead><tr><th class="uname-cell">Username</th><th>Name</th><th style="width:1%;white-space:nowrap">Roles</th><th class="scope-cell">Reviewer<br>scope</th><th class="sugg-cell">Reviewer<br>suggestions</th><th class="affil-cell">Affiliation</th><th class="email-cell">Email</th><th style="text-align:right">Used&nbsp;/<br>Quota</th><th style="text-align:right">Accepted&nbsp;/<br>Submitted</th><th>Actions</th></tr></thead>
         <tbody>${rows}</tbody>
     </table>`);
 
