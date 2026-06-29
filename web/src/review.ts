@@ -144,7 +144,7 @@ $(async () => {
                 $(`#comment-thread-${id}`).html(renderCommentThreadWrap(sug.comments));
             }
         } catch { alert('Failed to save'); }
-        $(this).prop('disabled', false).text('Send');
+        $(this).prop('disabled', false).text('Send comment');
     });
 
     // Delete submission (admin only)
