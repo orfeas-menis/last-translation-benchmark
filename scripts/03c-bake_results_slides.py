@@ -1,15 +1,13 @@
-# %%
-
 import collections
 import json
 import os
 
-os.makedirs("../computed/", exist_ok=True)
+os.makedirs("computed/", exist_ok=True)
 
-with open("../data/users.json", "r") as f:
+with open("data/users.json", "r") as f:
     data_users = json.load(f)
 
-with open("../data/submissions.json", "r") as f:
+with open("data/submissions.json", "r") as f:
     data_submissions = json.load(f)
 
 data_out = {}
@@ -54,5 +52,5 @@ for submission in data_submissions:
 print(counter_passing)
 data_out["passing_counts"] = dict(counter_passing.most_common())
 
-with open("../computed/bake_results.json", "w") as f:
+with open("computed/bake_results.json", "w") as f:
     json.dump(data_out, f, indent=2)
